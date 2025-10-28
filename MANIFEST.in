@@ -1,0 +1,3 @@
+include fake_knx_pv/*
+recursive-include fake_knx_pv/conso_data *
+recursive-include fake_knx_pv/pv_data *
