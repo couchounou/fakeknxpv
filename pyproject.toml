@@ -10,3 +10,10 @@ authors = [
     { name = "Eric" }
 ]
 requires-python = ">=3.7"
+
+dependencies = [
+    "xknx",
+    "pytz",
+    "astral",
+    "requests"
+]
