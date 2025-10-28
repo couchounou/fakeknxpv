@@ -213,3 +213,49 @@
 2025-10-28 11:35:29,823 root INFO Conso power 218.85W, energie:1.828375832259655Wh New index:132.18446265963183Wh
 2025-10-28 11:35:29,824 root INFO Inj index:0Wh, New index:285Wh
 2025-10-28 11:35:29,824 root INFO Sout index:0Wh, New index:0Wh
+2025-10-28 11:35:59,837 root INFO timezone='Europe/London' sunset=datetime.datetime(2025, 10, 28, 16, 39, 32, 521790, tzinfo=datetime.timezone.utc) sunrise=datetime.datetime(2025, 10, 28, 6, 31, 13, 400667, tzinfo=datetime.timezone.utc)
+2025-10-28 11:35:59,837 root INFO https://api.openweathermap.org/data/2.5/weather?lat=48.0&lon=2.0&appid=5090a14bf34a4879699a2418bf9b9913&units=metric
+2025-10-28 11:35:59,895 root INFO Couverture nuageuse : 100%
+2025-10-28 11:35:59,895 root INFO sunlight=0.2993482483981748 seasonal_factor=0.7755470342530602, cloud_factor=0.020000000000000004
+2025-10-28 11:35:59,895 root INFO sunlight=0.23215864625405283 seasonal_factor=0.7755470342530602, cloud_factor=0.020000000000000004
+2025-10-28 11:35:59,896 root INFO power:1392.95W, energie:11.639007798214754Wh
+2025-10-28 11:35:59,904 root INFO prod index:286.31541084393325Wh, New index:297.954418642148Wh
+2025-10-28 11:35:59,904 root INFO power:453.81W, energie:3.791879648858309Wh
+2025-10-28 11:35:59,914 root INFO Conso power 453.81W, energie:3.791879648858309Wh New index:135.97634230849013Wh
+2025-10-28 11:35:59,915 root INFO Inj index:0Wh, New index:151Wh
+2025-10-28 11:35:59,915 root INFO Sout index:0Wh, New index:0Wh
+2025-10-28 11:36:29,925 root INFO timezone='Europe/London' sunset=datetime.datetime(2025, 10, 28, 16, 39, 32, 521790, tzinfo=datetime.timezone.utc) sunrise=datetime.datetime(2025, 10, 28, 6, 31, 13, 400667, tzinfo=datetime.timezone.utc)
+2025-10-28 11:36:29,925 root INFO https://api.openweathermap.org/data/2.5/weather?lat=48.0&lon=2.0&appid=5090a14bf34a4879699a2418bf9b9913&units=metric
+2025-10-28 11:36:30,008 root INFO Couverture nuageuse : 100%
+2025-10-28 11:36:30,008 root INFO sunlight=0.34768024189326013 seasonal_factor=0.7755470342530602, cloud_factor=0.09200000000000001
+2025-10-28 11:36:30,008 root INFO sunlight=0.2696423804687045 seasonal_factor=0.7755470342530602, cloud_factor=0.09200000000000001
+2025-10-28 11:36:30,009 root INFO power:1617.85W, energie:13.529671573797861Wh
+2025-10-28 11:36:30,019 root INFO prod index:297.954418642148Wh, New index:311.4840902159459Wh
+2025-10-28 11:36:30,020 root INFO power:107.56W, energie:0.8995049850331412Wh
+2025-10-28 11:36:30,028 root INFO Conso power 107.56W, energie:0.8995049850331412Wh New index:136.87584729352326Wh
+2025-10-28 11:36:30,028 root INFO Inj index:0Wh, New index:256Wh
+2025-10-28 11:36:30,028 root INFO Sout index:0Wh, New index:0Wh
+2025-10-28 11:37:00,033 root INFO timezone='Europe/London' sunset=datetime.datetime(2025, 10, 28, 16, 39, 32, 521790, tzinfo=datetime.timezone.utc) sunrise=datetime.datetime(2025, 10, 28, 6, 31, 13, 400667, tzinfo=datetime.timezone.utc)
+2025-10-28 11:37:00,033 root INFO https://api.openweathermap.org/data/2.5/weather?lat=48.0&lon=2.0&appid=5090a14bf34a4879699a2418bf9b9913&units=metric
+2025-10-28 11:37:00,127 root INFO Couverture nuageuse : 100%
+2025-10-28 11:37:00,127 root INFO sunlight=0.30785646728303473 seasonal_factor=0.7755470342530602, cloud_factor=0.032
+2025-10-28 11:37:00,127 root INFO sunlight=0.23875717017698184 seasonal_factor=0.7755470342530602, cloud_factor=0.032
+2025-10-28 11:37:00,127 root INFO power:1432.54W, energie:11.980518667503198Wh
+2025-10-28 11:37:00,137 root INFO prod index:311.4840902159459Wh, New index:323.4646088834491Wh
+2025-10-28 11:37:00,137 root INFO power:328.08W, energie:2.7439585826237995Wh
+2025-10-28 11:37:00,146 root INFO Conso power 328.08W, energie:2.7439585826237995Wh New index:139.61980587614707Wh
+2025-10-28 11:37:00,146 root INFO Inj index:0Wh, New index:196Wh
+2025-10-28 11:37:00,146 root INFO Sout index:0Wh, New index:0Wh
+2025-10-28 11:37:30,147 root INFO timezone='Europe/London' sunset=datetime.datetime(2025, 10, 28, 16, 39, 32, 521790, tzinfo=datetime.timezone.utc) sunrise=datetime.datetime(2025, 10, 28, 6, 31, 13, 400667, tzinfo=datetime.timezone.utc)
+2025-10-28 11:37:30,147 root INFO https://api.openweathermap.org/data/2.5/weather?lat=48.0&lon=2.0&appid=5090a14bf34a4879699a2418bf9b9913&units=metric
+2025-10-28 11:37:30,235 root INFO Couverture nuageuse : 100%
+2025-10-28 11:37:30,235 root INFO sunlight=0.49808807399210137 seasonal_factor=0.7755470342530602, cloud_factor=0.31600000000000006
+2025-10-28 11:37:30,236 root INFO sunlight=0.386290728581393 seasonal_factor=0.7755470342530602, cloud_factor=0.31600000000000006
+2025-10-28 11:37:30,236 root INFO power:2317.74W, energie:19.37829892741044Wh
+2025-10-28 11:37:30,248 root INFO prod index:323.4646088834491Wh, New index:342.8429078108595Wh
+2025-10-28 11:37:30,249 root INFO power:41.13W, energie:0.3439279427170754Wh
+2025-10-28 11:37:30,260 root INFO Conso power 41.13W, energie:0.3439279427170754Wh New index:139.96373381886414Wh
+2025-10-28 11:37:30,260 root INFO Inj index:0Wh, New index:424Wh
+2025-10-28 11:37:30,260 root INFO Sout index:0Wh, New index:0Wh
+2025-10-28 11:38:00,263 root INFO timezone='Europe/London' sunset=datetime.datetime(2025, 10, 28, 16, 39, 32, 521790, tzinfo=datetime.timezone.utc) sunrise=datetime.datetime(2025, 10, 28, 6, 31, 13, 400667, tzinfo=datetime.timezone.utc)
+2025-10-28 11:38:00,263 root INFO https://api.openweathermap.org/data/2.5/weather?lat=48.0&lon=2.0&appid=5090a14bf34a4879699a2418bf9b9913&units=metric
