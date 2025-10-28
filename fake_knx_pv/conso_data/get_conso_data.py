@@ -6,22 +6,28 @@ _chauffe_eau_end = None
 def chauffe_eau_profile(heure):
     """
     Retourne la puissance du chauffe-eau (W) à une heure donnée.
-    Chauffe-eau 2500W, démarre à 22h30 pour une durée aléatoire entre 45min et 180min.
+    Chauffe-eau 2500W, démarre à 22h30  ou entre 12h et 15h 
+    pour une durée aléatoire entre 45min et 180min.
     Lors du premier appel dans la période de chauffe, choisit une durée aléatoire.
     Pendant cette durée, retourne 2500W +/- 150W. Sinon retourne 0.
     """
     global _chauffe_eau_active, _chauffe_eau_start, _chauffe_eau_end
     h = heure % 24
     chauffe_eau_puissance = 2500  # W
-    start_heater = 22.5  # 22h30
-    # Si on n'est pas en chauffe, vérifier si on entre dans la période
+    start_periods = [22.5]  # 22h30
+    # Ajout de la période de chauffe possible entre 12h et 15h
+    if 12 <= h < 15:
+        start_periods.append(12)
+    # Si on n'est pas en chauffe, vérifier si on entre dans une période
     if not _chauffe_eau_active:
-        if h >= start_heater and (h < 24 or start_heater + 3 > 24):
-            # On démarre une nouvelle chauffe
-            duration_heater = random.uniform(0.75, 3)  # heures (45min à 180min)
-            _chauffe_eau_start = h
-            _chauffe_eau_end = (start_heater + duration_heater) % 24 if start_heater + duration_heater > 24 else start_heater + duration_heater
-            _chauffe_eau_active = True
+        for start_heater in start_periods:
+            if h >= start_heater and h < start_heater + 3:
+                # On démarre une nouvelle chauffe
+                duration_heater = random.uniform(0.75, 3)  # heures (45min à 180min)
+                _chauffe_eau_start = h
+                _chauffe_eau_end = (start_heater + duration_heater) % 24 if start_heater + duration_heater > 24 else start_heater + duration_heater
+                _chauffe_eau_active = True
+                break
     # Si chauffe en cours
     if _chauffe_eau_active:
         # Cas normal (pas de chevauchement minuit)
