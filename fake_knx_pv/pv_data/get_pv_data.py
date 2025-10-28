@@ -46,7 +46,7 @@ def get_pv_data(
     logging.info(f"{sunlight=} {seasonal_factor=}, {cloud_factor=}")
     sunlight = sunlight * seasonal_factor
     logging.info(f"{sunlight=} {seasonal_factor=}, {cloud_factor=}")
-    index_file_path = "../index_prod.txt"
+    index_file_path = "index_prod.txt"
     if os.path.exists(index_file_path):
         updated_timestamp = os.path.getmtime(index_file_path)
     else:
@@ -56,7 +56,7 @@ def get_pv_data(
     delta = datetime.now().timestamp() - updated_timestamp
     p = round(sunlight * power, 2)
     e = p * delta / 3600
-    logging.info(f"power:{p}W, energie:{e}Wh")
+    logging.info(f"power:{p}W, energy:{e}Wh")
     old_index = 0.
     index = 0.
     with open(index_file_path, "r", encoding="UTF-8") as myfile:

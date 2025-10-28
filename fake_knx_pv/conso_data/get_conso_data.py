@@ -1,14 +1,23 @@
+import os
+from datetime import datetime
+import math
+import random
+import logging
+
+
 # Variables d'état pour le chauffe-eau
 _chauffe_eau_active = False
 _chauffe_eau_start = None
 _chauffe_eau_end = None
 
+
 def chauffe_eau_profile(heure):
     """
     Retourne la puissance du chauffe-eau (W) à une heure donnée.
-    Chauffe-eau 2500W, démarre à 22h30  ou entre 12h et 15h 
+    Chauffe-eau 2500W, démarre à 22h30  ou entre 12h et 15h
     pour une durée aléatoire entre 45min et 180min.
-    Lors du premier appel dans la période de chauffe, choisit une durée aléatoire.
+    Lors du premier appel dans la période de chauffe,
+    choisit une durée aléatoire.
     Pendant cette durée, retourne 2500W +/- 150W. Sinon retourne 0.
     """
     global _chauffe_eau_active, _chauffe_eau_start, _chauffe_eau_end
@@ -41,15 +50,9 @@ def chauffe_eau_profile(heure):
             _chauffe_eau_end = None
     return 0.0
 
-import os
-from datetime import datetime
-import math
-import random
-import logging
 
-
-def get_conso_data():
-    index_file_path = "../index_conso.txt"
+def get_conso_data(power=6000):
+    index_file_path = "index_conso.txt"
     # get last update timestamp
     if os.path.exists(index_file_path):
         updated_timestamp = os.path.getmtime(index_file_path)
@@ -60,7 +63,7 @@ def get_conso_data():
     
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
-    p = round(profil_maison(datetime.now().hour, datetime.now().weekday()), 2)
+    p = round(profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000), 2)
     e = p * delta / 3600
     logging.info(f"power:{p}W, energie:{e}Wh")
     old_index = 0.
