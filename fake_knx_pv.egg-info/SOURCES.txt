@@ -1,4 +1,5 @@
 MANIFEST.in
+README.md
 pyproject.toml
 setup.py
 fake_knx_pv/cyclic_send_toknx_pv_data.cfg
