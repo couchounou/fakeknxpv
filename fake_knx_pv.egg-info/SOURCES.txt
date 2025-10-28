@@ -7,6 +7,7 @@ fake_knx_pv/cyclic_send_toknx_pv_data.py
 fake_knx_pv.egg-info/PKG-INFO
 fake_knx_pv.egg-info/SOURCES.txt
 fake_knx_pv.egg-info/dependency_links.txt
+fake_knx_pv.egg-info/requires.txt
 fake_knx_pv.egg-info/top_level.txt
 fake_knx_pv/conso_data/__init.py__.py
 fake_knx_pv/conso_data/get_conso_data.py

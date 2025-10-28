@@ -1,0 +1,4 @@
+xknx
+pytz
+astral
+requests
