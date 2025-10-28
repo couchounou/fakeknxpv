@@ -6,7 +6,7 @@
 
 ## Installation
 1. Téléchargez le fichier `.whl` fourni :
-   - `fake_knx_pv-0.1.0-py3-none-any.whl`s
+   - `fake_knx_pv-0.1.0-py3-none-any.whl`
 2. Ouvrez un terminal dans le dossier contenant le fichier `.whl`.
 3. Exécutez la commande suivante :
    
