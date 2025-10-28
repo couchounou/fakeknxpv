@@ -1,3 +1,39 @@
+# Variables d'état pour le chauffe-eau
+_chauffe_eau_active = False
+_chauffe_eau_start = None
+_chauffe_eau_end = None
+
+def chauffe_eau_profile(heure):
+    """
+    Retourne la puissance du chauffe-eau (W) à une heure donnée.
+    Chauffe-eau 2500W, démarre à 22h30 pour une durée aléatoire entre 45min et 180min.
+    Lors du premier appel dans la période de chauffe, choisit une durée aléatoire.
+    Pendant cette durée, retourne 2500W +/- 150W. Sinon retourne 0.
+    """
+    global _chauffe_eau_active, _chauffe_eau_start, _chauffe_eau_end
+    h = heure % 24
+    chauffe_eau_puissance = 2500  # W
+    start_heater = 22.5  # 22h30
+    # Si on n'est pas en chauffe, vérifier si on entre dans la période
+    if not _chauffe_eau_active:
+        if h >= start_heater and (h < 24 or start_heater + 3 > 24):
+            # On démarre une nouvelle chauffe
+            duration_heater = random.uniform(0.75, 3)  # heures (45min à 180min)
+            _chauffe_eau_start = h
+            _chauffe_eau_end = (start_heater + duration_heater) % 24 if start_heater + duration_heater > 24 else start_heater + duration_heater
+            _chauffe_eau_active = True
+    # Si chauffe en cours
+    if _chauffe_eau_active:
+        # Cas normal (pas de chevauchement minuit)
+        if _chauffe_eau_start <= h < _chauffe_eau_end if _chauffe_eau_start < _chauffe_eau_end else (h >= _chauffe_eau_start or h < _chauffe_eau_end):
+            bruit = random.uniform(-150, 150)
+            return chauffe_eau_puissance + bruit
+        else:
+            # Fin de chauffe
+            _chauffe_eau_active = False
+            _chauffe_eau_start = None
+            _chauffe_eau_end = None
+    return 0.0
 
 import os
 from datetime import datetime
@@ -60,6 +96,9 @@ def profil_maison(heure, jour_semaine, pmax=6):
         facteur = 1.1 if 8 <= h <= 22 else 0.7
 
     puissance = base * facteur
+
+    # Ajout de la courbe chauffe-eau séparée
+    puissance += chauffe_eau_profile(h) / 1000  # conversion W -> kW
 
     # Normalisation à PUISSANCE_MAX
     puissance = min(puissance, pmax)

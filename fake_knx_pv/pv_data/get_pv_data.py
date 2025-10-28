@@ -1,4 +1,3 @@
-
 import os
 import sys
 from datetime import datetime, timedelta, date, timezone
@@ -13,7 +12,13 @@ import logging
 from pv_data import clouds
 
 
-def get_pv_data(latitude: float, longitude: float, mydate: datetime = None, power = 4000):
+def get_pv_data(
+    latitude: float,
+    longitude: float,
+    mydate: datetime = None,
+    power=4000,
+    weather_api_key: str = None,
+):
     loc = LocationInfo(latitude=latitude, longitude=longitude)
     s = sun(loc.observer, date=mydate)
     timezone = loc.timezone
@@ -26,7 +31,7 @@ def get_pv_data(latitude: float, longitude: float, mydate: datetime = None, powe
     sunlight = 0
     logging.info(f"{timezone=} {sunset=} {sunrise=}")
     cloud_factor = 1
-    myclouds = clouds.clouds(lat=latitude, lon=longitude)
+    myclouds = clouds.clouds(lat=latitude, lon=longitude, api_key=weather_api_key)
     if sunrise.timestamp() <= mydate.timestamp() <= sunset.timestamp():
         # Forme approximative d'un arc sinus (ensoleillement maximal à midi)
         if myclouds is None:

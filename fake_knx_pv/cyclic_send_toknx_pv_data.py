@@ -73,6 +73,7 @@ async def send_power_data(
     longitude,
     latitude,
     power,
+    weather_api_key=None,
 ):
     print(f"Start cyclic send to knxip {gateway_ip}:{gateway_port} {power_address=}, {energy_address=}, {inj_power_address=}, {inj_energy_address=}, {sout_power_address=}, {sout_energy_address=}")
 
@@ -89,7 +90,10 @@ async def send_power_data(
     try:
         while True:
             production_W, production_wh, _, _ = get_pv_data.get_pv_data(
-                latitude=latitude, longitude=longitude, power=power
+                latitude=latitude,
+                longitude=longitude,
+                power=power,
+                weather_api_key=weather_api_key
             )
             print(
                 f"Send prod {int(production_W)}W to power_address={power_address} and {int(production_wh)}Wh to energy_address={energy_address}"
@@ -186,6 +190,9 @@ def load_config(path="cyclic_send_toknx_pv_data.cfg"):
         "power_group": power_group,
         "household_power": household_power,
         "knx": knx,
+        "weather": {
+            "api_key": config.get("WEATHER", "api_key", fallback=None)
+        }
     }
 
 
@@ -216,5 +223,6 @@ if __name__ == "__main__":
             latitude=conf["lat"],
             power=conf["household_power"],
             delay=conf["knx"]["send_cycle_s"],
+            weather_api_key=conf["weather"]["api_key"],
         )
     )

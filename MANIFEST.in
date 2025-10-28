@@ -1,3 +1,4 @@
 include fake_knx_pv/*
+include fake_knx_pv/cyclic_send_toknx_pv_data.cfg
 recursive-include fake_knx_pv/conso_data *
 recursive-include fake_knx_pv/pv_data *
