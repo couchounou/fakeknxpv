@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fake_knx_pv"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simulation KNX PV pour données de production et consommation."
 authors = [
-    { name = "VotreNom" }
+    { name = "Eric" }
 ]
 requires-python = ">=3.7"
