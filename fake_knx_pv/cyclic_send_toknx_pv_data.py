@@ -23,17 +23,17 @@ from meteo_data import get_meteo_data
 import configparser
 
 
-def run_simple_http_server(response_text="SimuPV device is online", port=8080):
+def run_simple_http_server(response_text="SimuPV device is online", port=80):
     global log_messages_log
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(response_text.encode("utf-8"))
+            self.wfile.write(log_messages_log.encode("utf-8"))
 
     with socketserver.TCPServer(("", port), Handler) as httpd:
-        logging.info(log_messages_log)
+        print(f"Serving HTTP on port {port}...")
         httpd.serve_forever()
 
 
