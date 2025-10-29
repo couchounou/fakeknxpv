@@ -23,7 +23,7 @@ import configparser
 
 
 def run_simple_http_server(response_text="SimuPV device is online", port=80):
-    global knx_messages_log = ""
+    global knx_messages_log
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
