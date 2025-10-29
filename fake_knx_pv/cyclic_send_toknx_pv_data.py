@@ -1,81 +1,127 @@
 import os
 import asyncio
-from xknx import XKNX as XKNX
+from xknx import XKNX
 import logging
 from xknx.telegram import GroupAddress, Telegram
 from xknx.io import ConnectionConfig, ConnectionType, GatewayScanner
-from xknx.dpt import DPTPower, DPTActiveEnergy
+from xknx.dpt import (
+    DPTPower,
+    DPTActiveEnergy,
+    DPTPressure2Byte,
+    DPTTemperature,
+    DPTHumidity,
+)
 from xknx.telegram.apci import GroupValueWrite
 from datetime import datetime
 from pv_data import get_pv_data
 from conso_data import get_conso_data
+from meteo_data import get_meteo_data
 import configparser
 
 
-def get_inj_data(conso: float = 0, prod: float = 0):
-    inj_index_file_path = "index_inject.txt"
-    sout_index_file_path = "index_sout.txt"
-    updated_timestamp = datetime.now().timestamp()
-    if os.path.exists(inj_index_file_path) & os.path.exists(sout_index_file_path):
-        updated_timestamp = max(
-            os.path.getmtime(inj_index_file_path),
-            os.path.getmtime(sout_index_file_path),
-        )
-    else:
+last_updated_timestamp = last_saved_timestamp = datetime.now().timestamp()
+inj_index = sout_index = conso_index = prod_index = 0.0
+basepath = os.path.abspath(os.path.dirname(__file__))
+
+# try use default raspberry config path
+# create config dir if not exists
+# else use local path
+
+inj_index_file_path = "/boot/config_rw/index_inject.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_inject.txt")
+sout_index_file_path = "/boot/config_rw/index_sout.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_sout.txt")
+conso_index_file_path = "/boot/config_rw/index_conso.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_conso.txt")
+prod_index_file_path = "/boot/config_rw/index_prod.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_prod.txt")
+
+print(f"Using index files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}")
+
+# create index files if not exists and read values
+if os.path.exists(inj_index_file_path):
+    with open(inj_index_file_path, "r", encoding="UTF-8") as myfile:
+        inj_index = float(myfile.read() or "0")
+else:
+    with open(inj_index_file_path, "w", encoding="UTF-8") as myfile:
+        myfile.write("0.0")
+if os.path.exists(sout_index_file_path):
+    with open(sout_index_file_path, "r", encoding="UTF-8") as myfile:
+        sout_index = float(myfile.read() or "0")
+else:
+    with open(sout_index_file_path, "w", encoding="UTF-8") as myfile:
+        myfile.write("0.0")
+if os.path.exists(conso_index_file_path):
+    with open(conso_index_file_path, "r", encoding="UTF-8") as myfile:
+        conso_index = float(myfile.read() or "0")
+else:
+    with open(conso_index_file_path, "w", encoding="UTF-8") as myfile:
+        myfile.write("0.0")
+if os.path.exists(prod_index_file_path):
+    with open(prod_index_file_path, "r", encoding="UTF-8") as myfile:
+        prod_index = float(myfile.read() or "0")
+else:
+    with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
+        myfile.write("0.0")
+
+
+def save_indexes(save_cycle_s):
+    if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
         with open(inj_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write("0.0")
+            myfile.write(str(inj_index))
         with open(sout_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write("0.0")
+            myfile.write(str(sout_index))
+        with open(conso_index_file_path, "w", encoding="UTF-8") as myfile:
+            myfile.write(str(conso_index))
+        with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
+            myfile.write(str(prod_index))
+        print("Indexes saved to files.")
+        logging.info("Indexes saved to files.")
+        return datetime.now().timestamp()
+    return None
 
+
+def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.now().timestamp()):
     delta = datetime.now().timestamp() - updated_timestamp
-    if delta > 3600:
-        logging.warning("Trou de données... de %ss", delta)
-        delta = 3600
-
     inj = prod - conso
     sout_power = 0
-    sout_index = 0
+    diff_sout_index = 0
     inj_power = 0
-    inj_index = 0
+    diff_inj_index = 0
     energy = abs(inj) * delta / 3600
+
     if inj > 0:
         inj_power = inj
-        inj_index = energy
+        diff_inj_index = energy
     else:
         sout_power = -inj
-        sout_index = energy
+        diff_sout_index = energy
 
-    with open(inj_index_file_path, "r", encoding="UTF-8") as myfile:
-        old_index = float(myfile.read())
-        inj_index = old_index + inj_index
-        logging.info("Inj index:%dWh, New index:%dWh", int(old_index), int(inj_index))
-
-    with open(sout_index_file_path, "r", encoding="UTF-8") as myfile:
-        old_index = float(myfile.read())
-        sout_index = old_index + sout_index
-        logging.info("Sout index:%dWh, New index:%dWh", int(old_index), int(sout_index))
-
-    return inj_power, inj_index, sout_power, sout_index
+    return inj_power, diff_inj_index, sout_power, diff_sout_index
 
 
 async def send_power_data(
     delay,
     gateway_ip,
     gateway_port,
-    power_address,
-    energy_address,
+    conso_power_address,
+    conso_energy_address,
+    prod_power_address,
+    prod_energy_address,
     inj_power_address,
     inj_energy_address,
     sout_power_address,
     sout_energy_address,
+    pressure_address,
+    temperature_address,
+    humidity_address,
     longitude,
     latitude,
     household_power,
     panel_power,
     weather_api_key=None,
+    save_cycle_s=3600
 ):
     print(
-        f"Start cyclic send to knxip {gateway_ip}:{gateway_port} {power_address=}, {energy_address=}, {inj_power_address=}, {inj_energy_address=}, {sout_power_address=}, {sout_energy_address=}"
+        f"Start cyclic send to knxip {gateway_ip}:{gateway_port}"
+        f" {prod_power_address=}, {prod_energy_address=}, {inj_power_address=}," 
+        f" {inj_energy_address=}, {sout_power_address=}, {sout_energy_address=}"
     )
 
     # Configuration XKNX
@@ -87,90 +133,163 @@ async def send_power_data(
     print(f"XKNX connecting to {gateway_ip}:{gateway_port}")
     xknx = XKNX(connection_config=connection_config)
     print("XKNX starting...")
+    await xknx.start()
     print("XKNX started")
+    global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index
     try:
         while True:
-            production_W, production_wh, _, _ = get_pv_data.get_pv_data(
-                latitude=latitude,
-                longitude=longitude,
-                power=panel_power,
-                weather_api_key=weather_api_key,
-            )
-            print(
-                f"Send PROD {int(production_W)}W to power_address={power_address} and {int(production_wh)}Wh to energy_address={energy_address}"
-            )
-            telegram = Telegram(
-                destination_address=GroupAddress(energy_address),
-                payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(production_wh))),
-            )
-            await xknx.telegrams.put(telegram)
+            try:
+                myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
+                    lat=latitude,
+                    lon=longitude,
+                    api_key=weather_api_key
+                )
 
-            telegram = Telegram(
-                destination_address=GroupAddress(power_address),
-                payload=GroupValueWrite(DPTPower.to_knx(int(production_W))),
-            )
-            await xknx.telegrams.put(telegram)
-            conso_w, conso_wh = get_conso_data.get_conso_data(power=household_power)
-            inj_w, inj_wh, sout_w, sout_wh = get_inj_data(conso_w, production_W)
-            print(
-                f"   Simu prod:  {production_W}W({production_wh}Wh)"
-            )
-            print(
-                f"   Simu conso: {conso_w}W({conso_wh}Wh)"
-            )
-            print(
-                f"   Calc: Injection {inj_w}W - {inj_wh}Wh, Soutirage {sout_w}W - {sout_wh}Wh"
-            )
+                production_W, production_wh, _, _ = get_pv_data.get_pv_data(
+                    latitude=latitude,
+                    longitude=longitude,
+                    power=panel_power,
+                    updated_timestamp=last_updated_timestamp,
+                    myclouds=myclouds
+                )
 
-            # Send injection data
-            print(
-                f"Send INJ {int(-inj_w if inj_w else 0)}W to inj_power_address={inj_power_address} and {int(inj_wh)}Wh to inj_energy_address={inj_energy_address}"
-            )
-            telegram = Telegram(
-                destination_address=GroupAddress(inj_energy_address),
-                payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(inj_wh))),
-            )
-            await xknx.telegrams.put(telegram)
+                conso_w, conso_wh = get_conso_data.get_conso_data(
+                    power=household_power,
+                    updated_timestamp=last_updated_timestamp
+                )
 
-            telegram = Telegram(
-                destination_address=GroupAddress(inj_power_address),
-                payload=GroupValueWrite(
-                    DPTPower.to_knx(int(-inj_w if inj_w < 0 else 0))
-                ),
-            )
-            await xknx.telegrams.put(telegram)
+                inj_w, inj_wh, sout_w, sout_wh = get_inj_data(
+                    conso_w,
+                    production_W,
+                    updated_timestamp=last_updated_timestamp
+                )
+                myclouds = 0.8 if myclouds is None else myclouds
+                last_updated_timestamp = datetime.now().timestamp()
+                inj_index += inj_wh
+                sout_index += sout_wh
+                conso_index += conso_wh
+                prod_index += production_wh
+                print(
+                    f"   Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)"
+                )
+                print(
+                    f"   Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)"
+                )
+                print(
+                    f"   Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W({round(sout_wh, 2)}Wh"
+                )
+                print(
+                    f"   Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa"
 
-            # Send soutirage data
-            print(
-                f"Send SOUT {int(sout_w if sout_w > 0 else 0)}W to sout_power_address={sout_power_address} and {int(sout_wh)}Wh to sout_energy_address={sout_energy_address}"
-            )
-            telegram = Telegram(
-                destination_address=GroupAddress(sout_energy_address),
-                payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(sout_wh))),
-            )
-            await xknx.telegrams.put(telegram)
+                
+                # Send prod data to KNX
+                )
+                print(
+                    f"Send PROD {int(production_W)}W to prod_power_address={prod_power_address} and {int(prod_index)}Wh to energy_address={prod_energy_address}"
+                )
+                telegram = Telegram(
+                    destination_address=GroupAddress(prod_energy_address),
+                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(prod_index))),
+                )
+                await xknx.telegrams.put(telegram)
 
-            telegram = Telegram(
-                destination_address=GroupAddress(sout_power_address),
-                payload=GroupValueWrite(
-                    DPTPower.to_knx(int(sout_w if sout_w > 0 else 0))
-                ),
-            )
-            await xknx.telegrams.put(telegram)
-            print(
-                f"-> prod {int(production_W)}W - {int(production_wh)}Wh, "
-                f"Injection {int(inj_w)}W - {int(inj_wh)}Wh, "
-                f"Soutirage {int(sout_w)}W - {int(sout_wh)}Wh, "
-                f"Conso {int(production_W - inj_w + sout_w)}W"
-            )
-            await asyncio.sleep(delay)  # Envoi toutes les 30 secondes
+                telegram = Telegram(
+                    destination_address=GroupAddress(prod_power_address),
+                    payload=GroupValueWrite(DPTPower.to_knx(int(production_W))),
+                )
+                await xknx.telegrams.put(telegram)
+
+                # Send conso data to KNX
+                print(
+                    f"Send CONSO {int(conso_w)}W to conso_power_address={conso_power_address} and {int(conso_index)}Wh to conso_energy_address={conso_energy_address}"
+                )
+                telegram = Telegram(
+                    destination_address=GroupAddress(conso_energy_address),
+                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(conso_index))),
+                )
+                await xknx.telegrams.put(telegram)
+
+                telegram = Telegram(
+                    destination_address=GroupAddress(conso_power_address),
+                    payload=GroupValueWrite(DPTPower.to_knx(int(conso_w))),
+                )
+                await xknx.telegrams.put(telegram)
+
+                # Send injection data to KNX
+                print(
+                    f"Send INJ {int(-inj_w)}W to inj_power_address={inj_power_address} and {int(inj_index)}Wh to inj_energy_address={inj_energy_address}"
+                )
+                telegram = Telegram(
+                    destination_address=GroupAddress(inj_energy_address),
+                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(inj_index))),
+                )
+                await xknx.telegrams.put(telegram)
+
+                telegram = Telegram(
+                    destination_address=GroupAddress(inj_power_address),
+                    payload=GroupValueWrite(
+                        DPTPower.to_knx(int(-inj_w))
+                    ),
+                )
+                await xknx.telegrams.put(telegram)
+
+                # Send soutirage data to KNX
+                print(
+                    f"Send SOUT {int(sout_w)}W to sout_power_address={sout_power_address} and {int(sout_index)}Wh to sout_energy_address={sout_energy_address}"
+                )
+                telegram = Telegram(
+                    destination_address=GroupAddress(sout_energy_address),
+                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(sout_index))),
+                )
+                await xknx.telegrams.put(telegram)
+
+                telegram = Telegram(
+                    destination_address=GroupAddress(sout_power_address),
+                    payload=GroupValueWrite(
+                        DPTPower.to_knx(int(sout_w))
+                    ),
+                )
+                await xknx.telegrams.put(telegram)
+
+                # Send meteo data to log
+                print(
+                    f"Send METEO pressure={pressure}hPa to pressure_address={pressure_address},"
+                    f" temperature={temperature}C to temperature_address={temperature_address},"
+                    f" humidity={humidity}% to humidity_address={humidity_address}"
+                )
+                if pressure:
+                    telegram = Telegram(
+                        destination_address=GroupAddress(pressure_address),
+                        payload=GroupValueWrite(DPTPressure2Byte.to_knx(int(pressure * 100))),
+                    )
+                    await xknx.telegrams.put(telegram)
+                if temperature:
+                    telegram = Telegram(
+                        destination_address=GroupAddress(temperature_address),
+                        payload=GroupValueWrite(DPTTemperature.to_knx(float(temperature))),
+                    )
+                    await xknx.telegrams.put(telegram)
+                if humidity:
+                    telegram = Telegram(
+                        destination_address=GroupAddress(humidity_address),
+                        payload=GroupValueWrite(DPTHumidity.to_knx(int(humidity))),
+                    )
+                    await xknx.telegrams.put(telegram)
+                last_saved_timestamp = save_indexes(save_cycle_s) or last_saved_timestamp
+            except Exception as e:
+                logging.info(f"Error in main loop: {e}")
+            await asyncio.sleep(delay)
     except Exception as e:
         logging.info(e)
     finally:
         await xknx.stop()
 
 
-def load_config(path="cyclic_send_toknx_pv_data.cfg"):
+def load_config():
+    if os.path.exists("/boot/config_rw/cyclic_send_toknx_pv_data.cfg"):
+        path = "/boot/config_rw/cyclic_send_toknx_pv_data.cfg"
+    else:
+        path = "cyclic_send_toknx_pv_data.cfg"
     config = configparser.ConfigParser()
     if not os.path.exists(path):
         raise FileNotFoundError(f"Config file {path} not found")
@@ -187,12 +306,18 @@ def load_config(path="cyclic_send_toknx_pv_data.cfg"):
         "gateway_ip": config.get("KNX", "gateway_ip"),
         "gateway_port": config.getint("KNX", "gateway_port"),
         "send_cycle_s": config.getint("KNX", "send_cycle_s"),
-        "power_group": config.get("KNX", "power_group"),
-        "energy_group": config.get("KNX", "energy_group"),
+        "save_cycle_s": config.getint("KNX", "save_cycle_s"),
+        "conso_power_group": config.get("KNX", "conso_power_group"),
+        "conso_energy_group": config.get("KNX", "conso_energy_group"),
+        "prod_power_group": config.get("KNX", "prod_power_group"),
+        "prod_energy_group": config.get("KNX", "prod_energy_group"),
         "inj_energy_group": config.get("KNX", "inj_energy_group"),
         "inj_power_group": config.get("KNX", "inj_power_group"),
         "sout_energy_group": config.get("KNX", "sout_energy_group"),
         "sout_power_group": config.get("KNX", "sout_power_group"),
+        "pressure_group": config.get("KNX", "pressure_group", fallback=None),
+        "temperature_group": config.get("KNX", "temperature_group", fallback=None),
+        "humidity_group": config.get("KNX", "humidity_group", fallback=None),
     }
 
     # You can return a dict, a namedtuple, or just print for now
@@ -202,7 +327,7 @@ def load_config(path="cyclic_send_toknx_pv_data.cfg"):
         "panel_power": panel_power,
         "household_power": household_power,
         "knx": knx,
-        "weather": {"api_key": config.get("WEATHER", "api_key", fallback=None)},
+        "weather": {"api_key": config.get("OPENWEATHERMAP", "api_key", fallback=None)},
     }
 
 async def scan() -> None:
@@ -244,22 +369,28 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-    asyncio.run(scan())
+    # asyncio.run(scan())
     asyncio.run(
         send_power_data(
             gateway_ip=conf["knx"]["gateway_ip"],
             gateway_port=conf["knx"]["gateway_port"],
-            power_address=conf["knx"]["power_group"],
-            energy_address=conf["knx"]["energy_group"],
+            conso_power_address=conf["knx"]["conso_power_group"],
+            conso_energy_address=conf["knx"]["conso_energy_group"],
+            prod_power_address=conf["knx"]["prod_power_group"],
+            prod_energy_address=conf["knx"]["prod_energy_group"],
             inj_power_address=conf["knx"]["inj_power_group"],
             inj_energy_address=conf["knx"]["inj_energy_group"],
             sout_power_address=conf["knx"]["sout_power_group"],
             sout_energy_address=conf["knx"]["sout_energy_group"],
+            pressure_address=conf["knx"]["pressure_group"],
+            temperature_address=conf["knx"]["temperature_group"],
+            humidity_address=conf["knx"]["humidity_group"],
             longitude=conf["lon"],
             latitude=conf["lat"],
             household_power=conf["household_power"],
             panel_power=conf["panel_power"],
             delay=conf["knx"]["send_cycle_s"],
             weather_api_key=conf["weather"]["api_key"],
+            save_cycle_s=conf["knx"]["save_cycle_s"],
         )
     )

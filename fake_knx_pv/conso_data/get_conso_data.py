@@ -51,32 +51,13 @@ def chauffe_eau_profile(heure):
     return 0.0
 
 
-def get_conso_data(power=6000):
-    index_file_path = "index_conso.txt"
-    # get last update timestamp
-    if os.path.exists(index_file_path):
-        updated_timestamp = os.path.getmtime(index_file_path)
-    else:
-        updated_timestamp = datetime.now().timestamp()
-        with open(index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write("0.0")
-    
+def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
     p = round(profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000), 2)
     e = p * delta / 3600
-    logging.info(f"power:{p}W, energie:{e}Wh")
-    old_index = 0.
-    index = 0.
-
-    # read old index and update it
-    with open(index_file_path, "r", encoding="UTF-8") as myfile:
-        old_index = float(myfile.read())
-        index = old_index + e
-    with open(index_file_path, "w", encoding="UTF-8") as myfile:
-        myfile.write(str(index))
-    logging.info(f"Conso power {p}W, energie:{e}Wh New index:{index}Wh")
-    return p, index
+    logging.info(f"Conso power {p}W, energie:{e}Wh diff index:{e}Wh")
+    return p, e
 
 
 def profil_maison(heure, jour_semaine, pmax=6):
