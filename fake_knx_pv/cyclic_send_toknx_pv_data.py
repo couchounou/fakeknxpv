@@ -77,7 +77,6 @@ def run_simple_http_server(text="", port=80):
         print(f"Serving HTTP on port {port}...")
         httpd.serve_forever()
 
-
 json_status={
     "version": "0.4.0",
     "updated": "",
@@ -199,7 +198,11 @@ def save_indexes(save_cycle_s):
             myfile.write(str(prod_index))
         print("Indexes saved to files.")
         logging.info("Indexes saved to files.")
-        publish_upnp_service(get_local_ip(), 8080)
+        try:
+            publish_upnp_service(get_local_ip(), 8080)
+        except Exception as e:
+            print(f"Error publishing UPnP service: {e}")
+            logging.error(f"Error publishing UPnP service: {e}")
         return datetime.now().timestamp()
     return None
 
