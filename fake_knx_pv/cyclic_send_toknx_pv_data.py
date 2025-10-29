@@ -14,6 +14,7 @@ from xknx.dpt import (
     DPTHumidity,
 )
 
+import threading
 from xknx.telegram.apci import GroupValueWrite
 from datetime import datetime
 from pv_data import get_pv_data
@@ -378,7 +379,7 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-    run_simple_http_server("SimuPV device is online", port=80)
+    threading.Thread(target=run_simple_http_server, args=(8080), daemon=True).start()
     # asyncio.run(scan())
     asyncio.run(
         send_power_data(
