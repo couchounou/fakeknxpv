@@ -515,7 +515,7 @@ async def scan() -> None:
 if __name__ == "__main__":
     conf = load_config()
     logging.basicConfig(
-        filename=config_file,
+        filename="cyclic_send_toknx_pv_data.log",
         filemode="a",
         format="%(asctime)s,%(msecs)03d %(name)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
