@@ -151,7 +151,7 @@ inj_index_file_path = "/boot/config_rw/index_inject.txt" if os.path.exists("/boo
 sout_index_file_path = "/boot/config_rw/index_sout.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_sout.txt")
 conso_index_file_path = "/boot/config_rw/index_conso.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_conso.txt")
 prod_index_file_path = "/boot/config_rw/index_prod.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_prod.txt")
-
+config_file = "/boot/config_rw/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
 print(f"Using index files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}")
 
 # create index files if not exists and read values
@@ -499,9 +499,7 @@ async def scan() -> None:
 if __name__ == "__main__":
     conf = load_config()
     logging.basicConfig(
-        filename=os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), "cyclic_send_toknx_pv_data.log"
-        ),
+        filename=config_file,
         filemode="a",
         format="%(asctime)s,%(msecs)03d %(name)s %(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
