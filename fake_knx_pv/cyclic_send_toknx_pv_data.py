@@ -74,11 +74,11 @@ def run_simple_http_server(text="", port=80):
                             <minor>0</minor>
                         </specVersion>
                         <device>
-                            <deviceType>urn:schemas-upnp-org:device:SimuPV:1</deviceType>
-                            <friendlyName>SimuPV KNX Device</friendlyName>
-                            <manufacturer>SimuPV</manufacturer>
-                            <modelName>SimuPV KNX</modelName>
-                            <UDN>uuid:SimuPV</UDN>
+                            <deviceType>urn:schemas-upnp-org:device:FakeKNXpv:1</deviceType>
+                            <friendlyName>Fake KNX Device</friendlyName>
+                            <manufacturer>Rexel</manufacturer>
+                            <modelName>FakeKNXpv</modelName>
+                            <UDN>uuid:FakeKNXpv</UDN>
                             <presentationURL>http://{get_local_ip()}:{port}</presentationURL>
                         </device>
                     </root>
