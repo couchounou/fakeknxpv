@@ -1,4 +1,3 @@
-knx_messages_log = ""
 import http.server
 import socketserver
 import os
@@ -24,13 +23,13 @@ import configparser
 
 
 def run_simple_http_server(response_text="SimuPV device is online", port=80):
-    global log_messages_log
+    global knx_messages_log = ""
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(log_messages_log.encode("utf-8"))
+            self.wfile.write(knx_messages_log.encode("utf-8"))
 
     with socketserver.TCPServer(("", port), Handler) as httpd:
         print(f"Serving HTTP on port {port}...")
@@ -40,8 +39,7 @@ def run_simple_http_server(response_text="SimuPV device is online", port=80):
 last_updated_timestamp = last_saved_timestamp = datetime.now().timestamp()
 inj_index = sout_index = conso_index = prod_index = 0.0
 basepath = os.path.abspath(os.path.dirname(__file__))
-
-log_messages_log = ""
+knx_messages_log = ""
 
 
 # try use default raspberry config path
