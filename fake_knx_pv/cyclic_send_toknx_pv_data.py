@@ -1,3 +1,18 @@
+import http.server
+import socketserver
+
+def run_simple_http_server(response_text="SimuPV device is online", port=80):
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(response_text.encode("utf-8"))
+
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        print(f"Serving HTTP on port {port}...")
+        httpd.serve_forever()
+
 import os
 import asyncio
 from xknx import XKNX
@@ -10,7 +25,9 @@ from xknx.dpt import (
     DPTPressure2Byte,
     DPTTemperature,
     DPTHumidity,
+    DPTString
 )
+
 from xknx.telegram.apci import GroupValueWrite
 from datetime import datetime
 from pv_data import get_pv_data
@@ -59,6 +76,11 @@ if os.path.exists(prod_index_file_path):
 else:
     with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
         myfile.write("0.0")
+
+
+def encode_dpt16(text: str) -> bytes:
+    data = text.encode("latin-1")[:14]
+    return data.ljust(14, b'\x00') 
 
 
 def save_indexes(save_cycle_s):
@@ -111,6 +133,7 @@ async def send_power_data(
     pressure_address,
     temperature_address,
     humidity_address,
+    text_address,
     longitude,
     latitude,
     household_power,
@@ -250,7 +273,7 @@ async def send_power_data(
                     ),
                 )
                 await xknx.telegrams.put(telegram)
-
+                
                 # Send meteo data to log
                 print(
                     f"Send METEO pressure={pressure}hPa to pressure_address={pressure_address},"
@@ -318,6 +341,7 @@ def load_config():
         "pressure_group": config.get("KNX", "pressure_group", fallback=None),
         "temperature_group": config.get("KNX", "temperature_group", fallback=None),
         "humidity_group": config.get("KNX", "humidity_group", fallback=None),
+        "text_group": config.get("KNX", "text_group", fallback=None),
     }
 
     # You can return a dict, a namedtuple, or just print for now
@@ -369,6 +393,7 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
+    run_simple_http_server("SimuPV device is online", port=80)
     # asyncio.run(scan())
     asyncio.run(
         send_power_data(
@@ -385,6 +410,7 @@ if __name__ == "__main__":
             pressure_address=conf["knx"]["pressure_group"],
             temperature_address=conf["knx"]["temperature_group"],
             humidity_address=conf["knx"]["humidity_group"],
+            text_address=conf["knx"]["text_group"],
             longitude=conf["lon"],
             latitude=conf["lat"],
             household_power=conf["household_power"],
