@@ -22,16 +22,56 @@ from pv_data import get_pv_data
 from conso_data import get_conso_data
 from meteo_data import get_meteo_data
 import configparser
+import socket
+
+import socket
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # On se connecte à une adresse externe sans envoyer de données
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 
 
-def run_simple_http_server(text="",port=80):
+def publish_upnp_service(ip, port=8080):
+    import socket
+    ssdp_message = (
+        "NOTIFY * HTTP/1.1\r\n"
+        "HOST: 239.255.255.250:1900\r\n"
+        "NT: upnp:rootdevice\r\n"
+        "NTS: ssdp:alive\r\n"
+        "USN: uuid:FakeKNXpv::upnp:rootdevice\r\n"
+        f"LOCATION: http://{ip}:{port}/description.xml\r\n"
+        "CACHE-CONTROL: max-age=1800\r\n"
+        "SERVER: FakeKNXpv/1.0 UPnP/1.0\r\n"
+        "\r\n"
+    )
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    sock.sendto(ssdp_message.encode("utf-8"), ("239.255.255.250", 1900))
+    sock.close()
+
+def run_simple_http_server(text="", port=80):
     global json_status
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(json_status).encode("utf-8"))
+            if self.path == "/description.xml":
+                self.send_response(200)
+                self.send_header("Content-type", "application/xml")
+                self.end_headers()
+                with open("description.xml", "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(json_status).encode("utf-8"))
 
     with socketserver.TCPServer(("", port), Handler) as httpd:
         print(f"Serving HTTP on port {port}...")
@@ -159,6 +199,7 @@ def save_indexes(save_cycle_s):
             myfile.write(str(prod_index))
         print("Indexes saved to files.")
         logging.info("Indexes saved to files.")
+        publish_upnp_service(get_local_ip(), 8080)
         return datetime.now().timestamp()
     return None
 

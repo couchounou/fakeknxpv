@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:FakeKNXpv:1</deviceType>
+    <friendlyName>Fake KNX Device</friendlyName>
+    <manufacturer>Fake Manufacturer</manufacturer>
+    <modelName>bidouille KNX</modelName>
+    <UDN>uuid:FakeKNXpv</UDN>
+  </device>
+</root>
