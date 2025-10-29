@@ -1,18 +1,6 @@
+knx_messages_log = ""
 import http.server
 import socketserver
-
-def run_simple_http_server(response_text="SimuPV device is online", port=80):
-    class Handler(http.server.SimpleHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(response_text.encode("utf-8"))
-
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"Serving HTTP on port {port}...")
-        httpd.serve_forever()
-
 import os
 import asyncio
 from xknx import XKNX
@@ -25,7 +13,6 @@ from xknx.dpt import (
     DPTPressure2Byte,
     DPTTemperature,
     DPTHumidity,
-    DPTString
 )
 
 from xknx.telegram.apci import GroupValueWrite
@@ -36,9 +23,26 @@ from meteo_data import get_meteo_data
 import configparser
 
 
+def run_simple_http_server(response_text="SimuPV device is online", port=8080):
+    global log_messages_log
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(response_text.encode("utf-8"))
+
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        logging.info(log_messages_log)
+        httpd.serve_forever()
+
+
 last_updated_timestamp = last_saved_timestamp = datetime.now().timestamp()
 inj_index = sout_index = conso_index = prod_index = 0.0
 basepath = os.path.abspath(os.path.dirname(__file__))
+
+log_messages_log = ""
+
 
 # try use default raspberry config path
 # create config dir if not exists
@@ -159,8 +163,10 @@ async def send_power_data(
     await xknx.start()
     print("XKNX started")
     global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index
+    global knx_messages_log
     try:
         while True:
+            knx_messages_log = ""  # Reset log at each loop
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
                     lat=latitude,
@@ -192,24 +198,13 @@ async def send_power_data(
                 sout_index += sout_wh
                 conso_index += conso_wh
                 prod_index += production_wh
-                print(
-                    f"   Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)"
-                )
-                print(
-                    f"   Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)"
-                )
-                print(
-                    f"   Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W({round(sout_wh, 2)}Wh"
-                )
-                print(
-                    f"   Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa"
-
+                knx_messages_log += f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
+                knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
+                knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
+                knx_messages_log += f"Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa\n"
                 
                 # Send prod data to KNX
-                )
-                print(
-                    f"Send PROD {int(production_W)}W to prod_power_address={prod_power_address} and {int(prod_index)}Wh to energy_address={prod_energy_address}"
-                )
+                knx_messages_log += f"Send PROD {int(production_W)}W to prod_power_address={prod_power_address} and {int(prod_index)}Wh to energy_address={prod_energy_address}\n"
                 telegram = Telegram(
                     destination_address=GroupAddress(prod_energy_address),
                     payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(prod_index))),
@@ -223,9 +218,7 @@ async def send_power_data(
                 await xknx.telegrams.put(telegram)
 
                 # Send conso data to KNX
-                print(
-                    f"Send CONSO {int(conso_w)}W to conso_power_address={conso_power_address} and {int(conso_index)}Wh to conso_energy_address={conso_energy_address}"
-                )
+                knx_messages_log += f"Send CONSO {int(conso_w)}W to conso_power_address={conso_power_address} and {int(conso_index)}Wh to conso_energy_address={conso_energy_address}\n"
                 telegram = Telegram(
                     destination_address=GroupAddress(conso_energy_address),
                     payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(conso_index))),
@@ -239,9 +232,7 @@ async def send_power_data(
                 await xknx.telegrams.put(telegram)
 
                 # Send injection data to KNX
-                print(
-                    f"Send INJ {int(-inj_w)}W to inj_power_address={inj_power_address} and {int(inj_index)}Wh to inj_energy_address={inj_energy_address}"
-                )
+                knx_messages_log += f"Send INJ {int(-inj_w)}W to inj_power_address={inj_power_address} and {int(inj_index)}Wh to inj_energy_address={inj_energy_address}\n"
                 telegram = Telegram(
                     destination_address=GroupAddress(inj_energy_address),
                     payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(inj_index))),
@@ -257,9 +248,7 @@ async def send_power_data(
                 await xknx.telegrams.put(telegram)
 
                 # Send soutirage data to KNX
-                print(
-                    f"Send SOUT {int(sout_w)}W to sout_power_address={sout_power_address} and {int(sout_index)}Wh to sout_energy_address={sout_energy_address}"
-                )
+                knx_messages_log += f"Send SOUT {int(sout_w)}W to sout_power_address={sout_power_address} and {int(sout_index)}Wh to sout_energy_address={sout_energy_address}\n"
                 telegram = Telegram(
                     destination_address=GroupAddress(sout_energy_address),
                     payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(sout_index))),
@@ -275,11 +264,7 @@ async def send_power_data(
                 await xknx.telegrams.put(telegram)
                 
                 # Send meteo data to log
-                print(
-                    f"Send METEO pressure={pressure}hPa to pressure_address={pressure_address},"
-                    f" temperature={temperature}C to temperature_address={temperature_address},"
-                    f" humidity={humidity}% to humidity_address={humidity_address}"
-                )
+                knx_messages_log += f"Send METEO pressure={pressure}hPa to pressure_address={pressure_address}, temperature={temperature}C to temperature_address={temperature_address}, humidity={humidity}% to humidity_address={humidity_address}\n"
                 if pressure:
                     telegram = Telegram(
                         destination_address=GroupAddress(pressure_address),
@@ -299,6 +284,8 @@ async def send_power_data(
                     )
                     await xknx.telegrams.put(telegram)
                 last_saved_timestamp = save_indexes(save_cycle_s) or last_saved_timestamp
+                print(knx_messages_log)
+                logging.info(knx_messages_log)
             except Exception as e:
                 logging.info(f"Error in main loop: {e}")
             await asyncio.sleep(delay)
