@@ -59,13 +59,14 @@ def publish_upnp_service(ip, port=8080):
 
 def run_simple_http_server(text="", port=80):
     global json_status
+    import textwrap
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/description.xml":
                 self.send_response(200)
                 self.send_header("Content-type", "application/xml")
                 self.end_headers()
-                xml = f"""\
+                xml = textwrap.dedent(f"""\
                     <?xml version="1.0"?>
                     <root xmlns="urn:schemas-upnp-org:device-1-0">
                         <specVersion>
@@ -81,7 +82,7 @@ def run_simple_http_server(text="", port=80):
                             <presentationURL>http://{get_local_ip()}:{port}</presentationURL>
                         </device>
                     </root>
-                    """
+                    """)
                 self.wfile.write(xml.encode("utf-8"))
             else:
                 self.send_response(200)
