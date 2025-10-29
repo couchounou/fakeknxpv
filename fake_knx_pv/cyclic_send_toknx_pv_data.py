@@ -59,14 +59,30 @@ def publish_upnp_service(ip, port=8080):
 
 def run_simple_http_server(text="", port=80):
     global json_status
-    class Handler(http.server.SimpleHTTPRequestHandler):
+        class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/description.xml":
+                ip = get_local_ip()
                 self.send_response(200)
                 self.send_header("Content-type", "application/xml")
                 self.end_headers()
-                with open("description.xml", "rb") as f:
-                    self.wfile.write(f.read())
+                xml_payload = f'''<?xml version="1.0"?>
+                    <root xmlns="urn:schemas-upnp-org:device-1-0">
+                        <specVersion>
+                            <major>1</major>
+                            <minor>0</minor>
+                        </specVersion>
+                        <device>
+                            <deviceType>urn:schemas-upnp-org:device:SimuPV:1</deviceType>
+                            <friendlyName>SimuPV KNX Device</friendlyName>
+                            <manufacturer>SimuPV</manufacturer>
+                            <modelName>SimuPV KNX</modelName>
+                            <UDN>uuid:SimuPV</UDN>
+                            <presentationURL>http://{ip}:{port}/</presentationURL>
+                        </device>
+                    </root>
+                    '''
+                self.wfile.write(xml_payload.encode("utf-8"))
             else:
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
@@ -152,7 +168,7 @@ sout_index_file_path = "/boot/config_rw/index_sout.txt" if os.path.exists("/boot
 conso_index_file_path = "/boot/config_rw/index_conso.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_conso.txt")
 prod_index_file_path = "/boot/config_rw/index_prod.txt" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "index_prod.txt")
 config_file = "/boot/config_rw/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/config_rw/") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
-print(f"Using index files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}")
+print(f"Using files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}\n {config_file=}")
 
 # create index files if not exists and read values
 if os.path.exists(inj_index_file_path):
@@ -204,36 +220,15 @@ def save_indexes(save_cycle_s):
             print(f"Error publishing UPnP service: {e}")
             logging.error(f"Error publishing UPnP service: {e}")
         return datetime.now().timestamp()
-    return None
-
-
-def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.now().timestamp()):
-    delta = datetime.now().timestamp() - updated_timestamp
-    inj = prod - conso
-    sout_power = 0
-    diff_sout_index = 0
-    inj_power = 0
-    diff_inj_index = 0
-    energy = abs(inj) * delta / 3600
-
-    if inj > 0:
-        inj_power = inj
-        diff_inj_index = energy
-    else:
-        sout_power = -inj
-        diff_sout_index = energy
-
-    return inj_power, diff_inj_index, sout_power, diff_sout_index
-
-
-async def send_power_data(
-    delay,
-    gateway_ip,
-    gateway_port,
-    conso_power_address,
-    conso_energy_address,
-    prod_power_address,
-    prod_energy_address,
+    global json_status
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/description.xml":
+                ip = get_local_ip()
+                self.send_response(200)
+                self.send_header("Content-type", "application/xml")
+                self.end_headers()
+                xml_payload = f'''<?xml version="1.0"?>
     inj_power_address,
     inj_energy_address,
     sout_power_address,
@@ -249,6 +244,12 @@ async def send_power_data(
     save_cycle_s=3600
 ):
     print(
+                self.wfile.write(xml_payload.encode("utf-8"))
+            else:
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(json_status).encode("utf-8"))
         f"Start cyclic send to knxip {gateway_ip}:{gateway_port}"
         f" {prod_power_address=}, {prod_energy_address=}, {inj_power_address=}," 
         f" {inj_energy_address=}, {sout_power_address=}, {sout_energy_address=}"
