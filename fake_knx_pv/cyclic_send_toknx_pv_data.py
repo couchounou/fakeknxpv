@@ -22,7 +22,7 @@ from meteo_data import get_meteo_data
 import configparser
 
 
-def run_simple_http_server(response_text="SimuPV device is online", port=80):
+def run_simple_http_server(port=80):
     global knx_messages_log
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
