@@ -2,9 +2,11 @@ MANIFEST.in
 README.md
 pyproject.toml
 setup.py
+fake_knx_pv/VERSION
 fake_knx_pv/cyclic_send_toknx_pv_data.cfg
 fake_knx_pv/cyclic_send_toknx_pv_data.log
 fake_knx_pv/cyclic_send_toknx_pv_data.py
+fake_knx_pv/description.xml
 fake_knx_pv/index_conso.txt
 fake_knx_pv/index_inject.txt
 fake_knx_pv/index_prod.txt
@@ -18,8 +20,6 @@ fake_knx_pv/conso_data/__init.py__.py
 fake_knx_pv/conso_data/get_conso_data.py
 fake_knx_pv/conso_data/__pycache__/get_conso_data.cpython-311.pyc
 fake_knx_pv/pv_data/__init__.py
-fake_knx_pv/pv_data/clouds.py
 fake_knx_pv/pv_data/get_pv_data.py
 fake_knx_pv/pv_data/__pycache__/__init__.cpython-311.pyc
-fake_knx_pv/pv_data/__pycache__/clouds.cpython-311.pyc
 fake_knx_pv/pv_data/__pycache__/get_pv_data.cpython-311.pyc
