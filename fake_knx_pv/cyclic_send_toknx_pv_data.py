@@ -97,59 +97,15 @@ def run_simple_http_server(text="", port=80):
 json_status={
     "version": "0.4.0",
     "updated": "",
-    "injection": {
-        "W": {
-            "group_address": "",
-            "value": 0
-        },
-        "Wh": {
-            "group_address": "",
-            "value": 0
-        }
-    },
-    "soutirage": {
-        "W": {
-            "group_address": "",
-            "value": 0
-        },
-        "Wh": {
-            "group_address": "",
-            "value": 0
-        }
-    },
-    "consommation": {
-        "W": {
-            "group_address": "",
-            "value": 0
-        },
-        "Wh": {
-            "group_address": "",
-            "value": 0
-        }
-    },
-    "production": {
-        "W": {
-            "group_address": "",
-            "value": 0
-        },
-        "Wh": {
-            "group_address": "",
-            "value": 0
-        }
-    },
+    "inj_sout": {"W": {},},
+    "injection": {"W": {}, "Wh": {}},
+    "soutirage": {"W": {}, "Wh": {}},
+    "consommation": {"W": {}, "Wh": {}},
+    "production": {"W": {}, "Wh": {}},
     "meteo": {
-        "temperature": {
-            "group_address": "",
-            "value": 0
-        },
-        "humidity": {
-            "group_address": "",
-            "value": 0
-        },
-        "pressure": {
-            "group_address": "",
-            "value": 0
-        }
+        "temperature": {},
+        "humidity": {},
+        "pressure": {}
     }
 }
 
@@ -237,16 +193,47 @@ def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.n
         inj_power = inj
         diff_inj_index = energy
     else:
-        sout_power = -inj
+        sout_power = abs(inj)
         diff_sout_index = energy
 
     return inj_power, diff_inj_index, sout_power, diff_sout_index
+
+
+async def send_power_telegram(
+    xknx,
+    group_address,
+    value
+):
+    await send_telegram(xknx, group_address, DPTPower, value)
+
+
+async def send_energy_telegram(
+    xknx,
+    group_address,
+    value
+):
+    await send_telegram(xknx, group_address, DPTActiveEnergy, value)
+
+
+async def send_telegram(
+    xknx,
+    group_address,
+    dpt,
+    value
+):
+    await xknx.telegrams.put(
+        Telegram(
+            destination_address=GroupAddress(group_address),
+            payload=GroupValueWrite(dpt.to_knx(int(value))),
+        )
+    )
 
 
 async def send_power_data(
     delay,
     gateway_ip,
     gateway_port,
+    inj_sout_power_address,
     conso_power_address,
     conso_energy_address,
     prod_power_address,
@@ -317,89 +304,49 @@ async def send_power_data(
                 sout_index += sout_wh
                 conso_index += conso_wh
                 prod_index += production_wh
+                inj_sout_power = -inj_w if inj_w else sout_w 
                 knx_messages_log += f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
                 knx_messages_log += f"Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa\n"
-                
+
+                json_status["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
+                json_status["production"]["W"]["value"] = int(production_W)
+                json_status["production"]["Wh"]["value"] = int(prod_index)
+                json_status["consommation"]["W"]["value"] = int(conso_w)
+                json_status["consommation"]["Wh"]["value"] = int(conso_index)
+                json_status["injection"]["Wh"]["value"] = int(inj_index)
+                json_status["injection"]["W"]["value"] = int(-inj_w)
+                json_status["soutirage"]["Wh"]["value"] = int(sout_index)
+                json_status["soutirage"]["W"]["value"] = int(sout_w)
+                json_status["meteo"]["pressure"]["value"] = pressure
+                json_status["meteo"]["temperature"]["value"] = temperature
+                json_status["meteo"]["humidity"]["value"] = humidity
+                json_status["updated"] = datetime.now().isoformat()
+
+                # Send inj-sout data to KNX
+                knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
+                await send_power_telegram(xknx, inj_sout_power_address, inj_sout_power)
+
                 # Send prod data to KNX
                 knx_messages_log += f"Send PROD {int(production_W)}W to group={prod_power_address} and {int(prod_index)}Wh to group={prod_energy_address}\n"
-                telegram = Telegram(
-                    destination_address=GroupAddress(prod_energy_address),
-                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(prod_index))),
-                )
-                await xknx.telegrams.put(telegram)
-                telegram = Telegram(
-                    destination_address=GroupAddress(prod_power_address),
-                    payload=GroupValueWrite(DPTPower.to_knx(int(production_W))),
-                )
-                await xknx.telegrams.put(telegram)
-
-                json_status["production"]["W"]["group_address"] = prod_power_address
-                json_status["production"]["W"]["value"] = int(production_W)
-                json_status["production"]["Wh"]["group_address"] = prod_energy_address
-                json_status["production"]["Wh"]["value"] = int(prod_index)
+                await send_energy_telegram(xknx, prod_energy_address, prod_index)
+                await send_power_telegram(xknx, prod_power_address, production_W)
 
                 # Send conso data to KNX
                 knx_messages_log += f"Send CONSO {int(conso_w)}W to group={conso_power_address} and {int(conso_index)}Wh to group={conso_energy_address}\n"
-                telegram = Telegram(
-                    destination_address=GroupAddress(conso_energy_address),
-                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(conso_index))),
-                )
-                await xknx.telegrams.put(telegram)
-
-                telegram = Telegram(
-                    destination_address=GroupAddress(conso_power_address),
-                    payload=GroupValueWrite(DPTPower.to_knx(int(conso_w))),
-                )
-                await xknx.telegrams.put(telegram)
-
-                json_status["consommation"]["W"]["group_address"] = conso_power_address
-                json_status["consommation"]["W"]["value"] = int(conso_w)
-                json_status["consommation"]["Wh"]["group_address"] = conso_energy_address
-                json_status["consommation"]["Wh"]["value"] = int(conso_index)
+                await send_energy_telegram(xknx, conso_energy_address, conso_index)
+                await send_power_telegram(xknx, conso_power_address, conso_w)
 
                 # Send injection data to KNX
-                knx_messages_log += f"Send INJ {int(-inj_w)}W to group={inj_power_address} and {int(inj_index)}Wh to group={inj_energy_address}\n"
-                telegram = Telegram(
-                    destination_address=GroupAddress(inj_energy_address),
-                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(inj_index))),
-                )
-                await xknx.telegrams.put(telegram)
-
-                telegram = Telegram(
-                    destination_address=GroupAddress(inj_power_address),
-                    payload=GroupValueWrite(
-                        DPTPower.to_knx(int(-inj_w))
-                    ),
-                )
-                await xknx.telegrams.put(telegram)
-
-                json_status["injection"]["Wh"]["group_address"] = inj_energy_address
-                json_status["injection"]["Wh"]["value"] = int(inj_index)
-                json_status["injection"]["W"]["group_address"] = inj_power_address
-                json_status["injection"]["W"]["value"] = int(-inj_w)
+                knx_messages_log += f"Send INJ {int(inj_w)}W to group={inj_power_address} and {int(inj_index)}Wh to group={inj_energy_address}\n"
+                await send_energy_telegram(xknx, inj_energy_address, inj_index)
+                await send_power_telegram(xknx, inj_power_address, inj_w)
 
                 # Send soutirage data to KNX
                 knx_messages_log += f"Send SOUT {int(sout_w)}W to group={sout_power_address} and {int(sout_index)}Wh to group={sout_energy_address}\n"
-                telegram = Telegram(
-                    destination_address=GroupAddress(sout_energy_address),
-                    payload=GroupValueWrite(DPTActiveEnergy.to_knx(int(sout_index))),
-                )
-                await xknx.telegrams.put(telegram)
-
-                telegram = Telegram(
-                    destination_address=GroupAddress(sout_power_address),
-                    payload=GroupValueWrite(
-                        DPTPower.to_knx(int(sout_w))
-                    ),
-                )
-                await xknx.telegrams.put(telegram)
-
-                json_status["soutirage"]["Wh"]["group_address"] = sout_energy_address
-                json_status["soutirage"]["Wh"]["value"] = int(sout_index)
-                json_status["soutirage"]["W"]["group_address"] = sout_power_address
-                json_status["soutirage"]["W"]["value"] = int(sout_w)
+                await send_energy_telegram(xknx, sout_energy_address, sout_index)
+                await send_power_telegram(xknx, sout_power_address, sout_w)
 
                 # Send meteo data to log
                 knx_messages_log += f"Send METEO pressure={pressure}hPa to group={pressure_address}, temperature={temperature}C to group={temperature_address}, humidity={humidity}% to group={humidity_address}\n"
@@ -421,13 +368,7 @@ async def send_power_data(
                         payload=GroupValueWrite(DPTHumidity.to_knx(int(humidity))),
                     )
                     await xknx.telegrams.put(telegram)
-                json_status["meteo"]["pressure"]["group_address"] = pressure_address
-                json_status["meteo"]["pressure"]["value"] = pressure
-                json_status["meteo"]["temperature"]["group_address"] = temperature_address
-                json_status["meteo"]["temperature"]["value"] = temperature
-                json_status["meteo"]["humidity"]["group_address"] = humidity_address
-                json_status["meteo"]["humidity"]["value"] = humidity
-                json_status["updated"] = datetime.now().isoformat()
+
                 last_saved_timestamp = save_indexes(save_cycle_s) or last_saved_timestamp
                 print(knx_messages_log)
                 logging.info(knx_messages_log)
@@ -441,6 +382,7 @@ async def send_power_data(
 
 
 def load_config():
+    global json_status
     if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg"):
         path = "/boot/firmware/cyclic_send_toknx_pv_data.cfg"
     else:
@@ -462,6 +404,7 @@ def load_config():
         "gateway_port": config.getint("KNX", "gateway_port"),
         "send_cycle_s": config.getint("KNX", "send_cycle_s"),
         "save_cycle_s": config.getint("KNX", "save_cycle_s"),
+        "inj_sout_power_group": config.get("KNX", "inj_sout_power_group"),
         "conso_power_group": config.get("KNX", "conso_power_group"),
         "conso_energy_group": config.get("KNX", "conso_energy_group"),
         "prod_power_group": config.get("KNX", "prod_power_group"),
@@ -470,10 +413,24 @@ def load_config():
         "inj_power_group": config.get("KNX", "inj_power_group"),
         "sout_energy_group": config.get("KNX", "sout_energy_group"),
         "sout_power_group": config.get("KNX", "sout_power_group"),
-        "pressure_group": config.get("KNX", "pressure_group", fallback=None),
-        "temperature_group": config.get("KNX", "temperature_group", fallback=None),
-        "humidity_group": config.get("KNX", "humidity_group", fallback=None),
+        "pressure_group": config.get("KNX", "pressure_group"),
+        "temperature_group": config.get("KNX", "temperature_group"),
+        "humidity_group": config.get("KNX", "humidity_group"),
     }
+
+    json_status["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group")
+    json_status["production"]["W"]["group_address"] = config.get("KNX", "prod_power_group")
+    json_status["production"]["Wh"]["group_address"] = config.get("KNX", "prod_energy_group")
+    json_status["consommation"]["W"]["group_address"] = config.get("KNX", "conso_power_group")
+    json_status["consommation"]["Wh"]["group_address"] = config.get("KNX", "conso_energy_group")
+    json_status["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group")
+    json_status["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group")
+    json_status["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group")
+    json_status["soutirage"]["W"]["group_address"] = config.get("KNX", "sout_power_group")
+    json_status["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group")
+    json_status["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group")
+    json_status["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group")
+    json_status["updated"] = datetime.now().isoformat()
 
     # You can return a dict, a namedtuple, or just print for now
     return {
@@ -535,6 +492,7 @@ if __name__ == "__main__":
     json_status["send_cycle_s"] = conf["knx"]["send_cycle_s"]
     asyncio.run(
         send_power_data(
+            inj_sout_power_address=conf["knx"]["inj_sout_power_group"],
             gateway_ip=conf["knx"]["gateway_ip"],
             gateway_port=conf["knx"]["gateway_port"],
             conso_power_address=conf["knx"]["conso_power_group"],
