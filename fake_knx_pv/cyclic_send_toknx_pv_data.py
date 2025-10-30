@@ -304,7 +304,7 @@ async def send_power_data(
                 sout_index += sout_wh
                 conso_index += conso_wh
                 prod_index += production_wh
-                inj_sout_power = -inj_w if inj_w else sout_w 
+                inj_sout_power = -inj_w if inj_w else sout_w
                 knx_messages_log += f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
@@ -316,7 +316,7 @@ async def send_power_data(
                 json_status["consommation"]["W"]["value"] = int(conso_w)
                 json_status["consommation"]["Wh"]["value"] = int(conso_index)
                 json_status["injection"]["Wh"]["value"] = int(inj_index)
-                json_status["injection"]["W"]["value"] = int(-inj_w)
+                json_status["injection"]["W"]["value"] = int(abs(inj_w))
                 json_status["soutirage"]["Wh"]["value"] = int(sout_index)
                 json_status["soutirage"]["W"]["value"] = int(sout_w)
                 json_status["meteo"]["pressure"]["value"] = pressure
