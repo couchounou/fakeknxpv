@@ -162,7 +162,7 @@ if (data.household_power) {
   powerHtml += `
     <div class="kpi">
       <div class="small">Maison</div>
-      <div class="big">${fmtNum(data.household_power.value, 'W')}</div>
+      <div class="big">${fmtNum(data.household_power, 'W')}</div>
     </div>
   `;
 }
@@ -170,7 +170,7 @@ if (data.panel_power) {
   powerHtml += `
     <div class="kpi">
       <div class="small">PV</div>
-      <div class="big">${fmtNum(data.panel_power.value, 'W')}</div>
+      <div class="big">${fmtNum(data.panel_power, 'W')}</div>
     </div>
   `;
 }
