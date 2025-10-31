@@ -1,0 +1,17 @@
+[Unit]
+Description=Fake PV KNX
+After=multi-user.target
+
+[Service]
+Type=idle
+User=root
+ExecStart=/home/pi/venv//bin/python3 /home/pi/fakeknxpv/fake_knx_pv/cyclic_send_toknx_pv_data.py
+WorkingDirectory=/home/pi/fakeknxpv/fake_knx_pv/
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=60
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

@@ -490,6 +490,10 @@ if __name__ == "__main__":
     json_status["gateway"] = str(conf["knx"]["gateway_ip"]) + ":" + str(conf["knx"]["gateway_port"])
     json_status["save_cycle_s"] = conf["knx"]["save_cycle_s"]
     json_status["send_cycle_s"] = conf["knx"]["send_cycle_s"]
+    try:
+        publish_upnp_service(get_local_ip(), 8080)
+    except Exception as e:
+        print(f"Error publishing UPnP service: {e}")
     asyncio.run(
         send_power_data(
             inj_sout_power_address=conf["knx"]["inj_sout_power_group"],
