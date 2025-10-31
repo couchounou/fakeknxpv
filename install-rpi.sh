@@ -14,11 +14,6 @@ sudo cp /home/pi/fakeknxpv/services/gitupdate.service /etc/systemd/system/
 sudo cp /home/pi/fakeknxpv/services/fakeknxpv.service /etc/systemd/system/
 sudo chmod +x /home/pi/git-update.sh
 sudo cp ./fakeknxpv/fake_knx_pv/cyclic_send_toknx_pv_data.cfg /boot/firmware/
-# sudo touch /boot/firmware/index_inject.txt
-# sudo touch /boot/firmware/index_sout.txt
-# sudo touch /boot/firmware/index_conso.txt
-# sudo touch /boot/firmware/index_prod.txt
-# sudo chown pi:pi /boot/firmware/index_*.*
 sudo chmod +r /boot/firmware/index_*.*
 sudo systemctl daemon-reload
 sudo systemctl enable gitupdate.service

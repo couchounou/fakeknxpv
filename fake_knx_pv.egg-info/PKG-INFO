@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: fake_knx_pv
-Version: 0.2.5
+Version: 0.2.6
 Summary: Simulation KNX PV pour données de production et consommation.
 Author: Eric
 Requires-Python: >=3.7
