@@ -262,7 +262,8 @@ async function chargerJSON() {
 }
 
 // Appel au chargement automatique à l'ouverture
-setInterval(chargerJSON, 10000);
+chargerJSON(); // Charge immédiatement au démarrage
+setInterval(chargerJSON, 5000); // Puis toutes les 5s
 
 /* =========================
    Initial render
