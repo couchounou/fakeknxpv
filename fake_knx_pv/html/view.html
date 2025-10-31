@@ -226,6 +226,15 @@ if (powerHtml) {
     <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
   </div>
   `;
+  if (data.occupancy) {
+  grid.appendChild(createCard('🚶 Presence', `
+    <div class="kpi">
+      <div class="big">${fmtNum(data.occupancy.value)}</div>
+      <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
+      <div class="sub">Présence si conso W > 10% puissance totale </div>
+    </div>
+  `));
+}
   grid.appendChild(createCard('🖥️ Système', miscHtml));
 
   // raw json

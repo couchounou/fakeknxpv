@@ -16,7 +16,8 @@ from xknx.dpt import (
     DPTSwitch,
     DPTScaling,
     DPTBinary,
-    DPTArray
+    DPTArray,
+    DPTOccupancy
 )
 
 import threading
@@ -120,7 +121,8 @@ json_status={
         "pressure": {}
     },
     "switch": {"group_address": "", "state_group_address": "", "state": False},
-    "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""}
+    "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""},
+    "occupancy": {"group_address": "", "state_group_address": "", "state": False}
 }
 
 volet = volet()
@@ -257,6 +259,12 @@ async def send_telegram(
 async def send_switch_telegram(xknx, relay_state, group_address):
     print(f"Sending relay state update to {group_address}: {relay_state}")
     dpt = DPTSwitch.to_knx(relay_state)
+    await send_telegram(xknx, group_address, dpt)
+
+
+async def send_switch_telegram(xknx, relay_state, group_address):
+    print(f"Sending occupancy state update to {group_address}: {relay_state}")
+    dpt = DPTOccupancy.to_knx(relay_state)
     await send_telegram(xknx, group_address, dpt)
 
 
@@ -411,6 +419,16 @@ async def send_power_data(
                 json_status["updated"] = datetime.now().isoformat()
 
 
+                # occupancy detection
+                occupancy_state = False
+                if conso_w < (household_power * 0.1):
+                    occupancy_state = False
+                else:
+                    occupancy_state = True
+                json_status["occupancy"]["state"] = occupancy_state
+                knx_messages_log += f"Send PRESENCE {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
+                await send_occupancy_telegram(xknx, json_status["occupancy"]["group_address"], occupancy_state)
+
                 # Send inj-sout data to KNX
                 knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
                 await send_power_telegram(xknx, inj_sout_power_address, inj_sout_power)
@@ -526,6 +544,7 @@ def load_config():
     json_status["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
     json_status["volet"]["setposition_group_address"] = config.get("KNX", "volet_setposition_group_address", fallback="7/1/5")
     json_status["volet"]["position_group_address"] = config.get("KNX", "volet_position_group_address", fallback="7/1/6")
+    json_status["occupancy"]["group_address"] = config.get("KNX", "occupancy_group", fallback="8/1/1")
     json_status["updated"] = datetime.now().isoformat()
     json_status["longitude"] = lon
     json_status["latitude"] = lat
