@@ -1,6 +1,6 @@
 [Unit]
 Description=Fake PV KNX
-After=multi-user.target
+After=gitupdate.service
 
 [Service]
 Type=idle
