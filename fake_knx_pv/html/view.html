@@ -229,7 +229,7 @@ if (powerHtml) {
   if (data.occupancy) {
   grid.appendChild(createCard('🚶 Presence', `
     <div class="kpi">
-      <div class="big">${fmtNum(data.occupancy.value)}</div>
+      <div class="big">${fmtNum(data.occupancy.state)}</div>
       <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
       <div class="sub">Présence si conso W > 10% puissance totale </div>
     </div>
