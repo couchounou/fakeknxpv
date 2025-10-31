@@ -549,7 +549,8 @@ def load_config():
     json_status["longitude"] = lon
     json_status["latitude"] = lat
     json_status["panel_power"] = panel_power
-    json_status["household_power"] = household_power    
+    json_status["household_power"] = household_power
+    json_status["ipaddress"] = get_local_ip()
 
     # You can return a dict, a namedtuple, or just print for now
     return {
