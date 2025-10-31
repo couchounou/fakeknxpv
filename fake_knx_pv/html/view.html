@@ -151,11 +151,11 @@ function render(data){
   }
 
   // production / consommation / injection / soutirage
-  grid.appendChild(createCard('Production', pairHtml(data.production)));
-  grid.appendChild(createCard('Consommation', pairHtml(data.consommation)));
-  grid.appendChild(createCard('Injection', pairHtml(data.injection)));
-  grid.appendChild(createCard('Injection / Soutirage', pairHtml(data.inj_sout)));
-  grid.appendChild(createCard('Soutirage', pairHtml(data.soutirage)));
+  grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
+  grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
+  grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
+  grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
+  grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
 // Card Puissance (Maison + PV)
 let powerHtml = '';
 if (data.household_power) {
@@ -175,15 +175,15 @@ if (data.panel_power) {
   `;
 }
 if (powerHtml) {
-  grid.appendChild(createCard('Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
+  grid.appendChild(createCard('⚡ Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
 }
   // meteo
   const meteo = data.meteo || {};
   const meteoHtml = `
     <div class="row">
-      <div class="kpi"><div class="small">Temp</div><div class="value">${fmtNum(meteo.temperature?.value,'°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
-      <div class="kpi"><div class="small">Humidity</div><div class="value">${fmtNum(meteo.humidity?.value,'%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
-      <div class="kpi"><div class="small">Pressure</div><div class="value">${fmtNum(meteo.pressure?.value,'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+      <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value,'°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
+      <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value,'%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
+      <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value,'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
     </div>`;
   grid.appendChild(createCard('Météo', meteoHtml));
 
@@ -226,7 +226,7 @@ if (powerHtml) {
     <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
   </div>
   `;
-  grid.appendChild(createCard('Système', miscHtml));
+  grid.appendChild(createCard('🖥️ Système', miscHtml));
 
   // raw json
   el('rawJson').textContent = JSON.stringify(data, null, 2);
