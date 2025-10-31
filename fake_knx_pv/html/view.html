@@ -1,195 +1,381 @@
 <!doctype html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Dashboard PV — aperçu JSON</title>
-<style>
-  :root{
-    --bg:#0f1720;
-    --card:#0b1220;
-    --muted:#9aa7b2;
-    --accent:#16a34a;
-    --accent2:#06b6d4;
-    --glass: rgba(255,255,255,0.03);
-    --card-radius:14px;
-    --gap:12px;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    color: #e6eef3;
-  }
-  html,body{height:100%;margin:0;background:
-    linear-gradient(180deg,#071020 0%, #071827 55%, #061218 100%);}
-  .wrap{max-width:1100px;margin:28px auto;padding:20px;display:flex;flex-direction:column;gap:18px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px}
-  .title{display:flex;gap:14px;align-items:center}
-  .logo{
-    width:56px;height:56px;border-radius:12px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    display:flex;align-items:center;justify-content:center;font-weight:700;
-    box-shadow:0 6px 18px rgba(6,182,212,0.12), inset 0 -6px 20px rgba(255,255,255,0.06);
-  }
-  h1{font-size:18px;margin:0}
-  .meta{font-size:13px;color:var(--muted)}
-  .controls{display:flex;gap:10px;align-items:center}
-  .btn{
-    background:var(--glass);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;color:var(--muted);
-    cursor:pointer;font-size:13px;
-  }
-  .btn:hover{filter:brightness(1.06)}
-  .grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);
-  }
-  @media (max-width:960px){ .grid{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} .wrap{padding:12px} }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard PV — aperçu JSON</title>
+    <style>
+        :root {
+            --bg: #0f1720;
+            --card: #0b1220;
+            --muted: #9aa7b2;
+            --accent: #16a34a;
+            --accent2: #06b6d4;
+            --glass: rgba(255, 255, 255, 0.03);
+            --card-radius: 14px;
+            --gap: 12px;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            color: #e6eef3;
+        }
 
-  .card{
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:var(--card-radius);padding:14px;box-shadow: 0 6px 24px rgba(2,6,23,0.6);
-    border:1px solid rgba(255,255,255,0.02);
-  }
-  .card .head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .card .name{font-weight:600}
-  .card .value{font-size:20px;font-weight:700}
-  .sub{font-size:13px;color:var(--muted);margin-top:6px}
-  .card-history { grid-column: 1/-1; }
-  .row{display:flex;align-items:center;gap:10px}
-  .kpi{display:flex;flex-direction:column;gap:6px;flex:1}
-  .kpi .big{font-size:26px;font-weight:800}
-  .small{font-size:12px;color:var(--muted)}
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background:
+                linear-gradient(180deg, #071020 0%, #071827 55%, #061218 100%);
+        }
 
-  .pair{display:flex;flex-direction:row;gap:12px;align-items:center}
-  .chip{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:8px;font-size:13px;color:var(--muted)}
+        .wrap {
+            max-width: 1100px;
+            margin: 28px auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px
+        }
 
-  /* switch look */
-  .switch-ui{display:inline-flex;align-items:center;gap:10px}
-  .toggle{
-    width:46px;height:26px;background:rgba(255,255,255,0.06);border-radius:20px;padding:3px;display:flex;align-items:center;
-    transition:all .18s;cursor:pointer;
-  }
-  .knob{width:20px;height:20px;border-radius:50%;background:white;transform:translateX(0);transition:transform .18s}
-  .toggle.on{background:linear-gradient(90deg,#16a34a 0%, #06b6d4 100%)}
-  .toggle.on .knob{transform:translateX(20px);background:#082018}
-  /* progress bar for position */
-  .posbar{height:10px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden}
-  .posbar > i{display:block;height:100%;background:linear-gradient(90deg,#06b6d4,#16a34a);width:0%}
-  footer{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
-  pre.json{background:#071020;border-radius:10px;padding:12px;color:#9ad8ff;overflow:auto;font-size:12px}
-</style>
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px
+        }
+
+        .title {
+            display: flex;
+            gap: 14px;
+            align-items: center
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 6px 18px rgba(6, 182, 212, 0.12), inset 0 -6px 20px rgba(255, 255, 255, 0.06);
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0
+        }
+
+        .meta {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        .btn {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 8px 12px;
+            border-radius: 10px;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn:hover {
+            filter: brightness(1.06)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gap);
+        }
+
+        @media (max-width:960px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media (max-width:640px) {
+            .grid {
+                grid-template-columns: repeat(1, 1fr)
+            }
+
+            .wrap {
+                padding: 12px
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: var(--card-radius);
+            padding: 14px;
+            box-shadow: 0 6px 24px rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .card .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px
+        }
+
+        .card .name {
+            font-weight: 600
+        }
+
+        .card .value {
+            font-size: 20px;
+            font-weight: 700
+        }
+
+        .sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 6px
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .kpi {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1
+        }
+
+        .kpi .big {
+            font-size: 26px;
+            font-weight: 800
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .pair {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            align-items: center
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        /* switch look */
+        .switch-ui {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .toggle {
+            width: 46px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 3px;
+            display: flex;
+            align-items: center;
+            transition: all .18s;
+            cursor: pointer;
+        }
+
+        .knob {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            transform: translateX(0);
+            transition: transform .18s
+        }
+
+        .toggle.on {
+            background: linear-gradient(90deg, #16a34a 0%, #06b6d4 100%)
+        }
+
+        .toggle.on .knob {
+            transform: translateX(20px);
+            background: #082018
+        }
+
+        /* progress bar for position */
+        .posbar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            overflow: hidden
+        }
+
+        .posbar>i {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #06b6d4, #16a34a);
+            width: 0%
+        }
+
+        footer {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 6px
+        }
+
+        pre.json {
+            background: #071020;
+            border-radius: 10px;
+            padding: 12px;
+            color: #9ad8ff;
+            overflow: auto;
+            font-size: 12px
+        }
+    </style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="title">
-      <div class="logo">PV</div>
-      <div>
-        <h1 id="title">Fake PV — Dashboard</h1>
-        <div class="meta" id="meta">version — updated — gateway</div>
-      </div>
-    </div>
 
-    <div class="controls">
-    <!-- 
+<body>
+    <div class="wrap">
+        <header>
+            <div class="title">
+                <div class="logo">PV</div>
+                <div>
+                    <h1 id="title">Fake PV — Dashboard</h1>
+                    <div class="meta" id="meta">version — updated — gateway</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <!-- 
       <button class="btn" id="btnLoad">Charger JSON</button>
       <button class="btn" id="btnFetch">Fetch depuis URL</button>
       <input id="fetchUrl" class="btn" style="min-width:260px" value="" placeholder="URL JSON (ex: http://host/state.json)">-->
+            </div>
+        </header>
+
+        <section class="grid" id="grid">
+            <!-- Cards injected here -->
+        </section>
+
+        <section class="card" style="margin-top:6px">
+            <div class="head">
+                <div class="name">Données (JSON brut) -> <a href="/data.json"> data.json </a> </div>
+                <div class="small">Copie / debug</div>
+            </div>
+            <pre class="json" id="rawJson"></pre>
+        </section>
+
+        <footer>Saved cycle / send cycle visible dans JSON • Ouvrir le fichier dans navigateur pour visualiser
+            localement</footer>
     </div>
-  </header>
-
-  <section class="grid" id="grid">
-    <!-- Cards injected here -->
-  </section>
-
-  <section class="card" style="margin-top:6px">
-    <div class="head"><div class="name">Données (JSON brut) -> <a href="/data.json"> data.json </a> </div><div class="small">Copie / debug</div></div>
-    <pre class="json" id="rawJson"></pre>
-  </section>
-
-  <footer>Saved cycle / send cycle visible dans JSON • Ouvrir le fichier dans navigateur pour visualiser localement</footer>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
 
 
-/* =========================
-   Helpers
-   ========================= */
-const el = id => document.getElementById(id);
-const fmt = v => (v === null || v === undefined) ? '—' : v;
-const fmtNum = (v, unit='') => (v===null||v===undefined) ? '—' : (Number(v).toLocaleString() + (unit ? ' ' + unit : ''));
+        /* =========================
+           Helpers
+           ========================= */
+        const el = id => document.getElementById(id);
+        const fmt = v => (v === null || v === undefined) ? '—' : v;
+        const fmtNum = (v, unit = '') => (v === null || v === undefined) ? '—' : (Number(v).toLocaleString() + (unit ? ' ' + unit : ''));
 
-function createCard(title, innerHtml){
-  const div = document.createElement('div');
-  div.className = 'card';
-  div.innerHTML = `<div class="head"><div class="name">${title}</div></div><div style="margin-top:10px">${innerHtml}</div>`;
-  return div;
+        function createCard(title, innerHtml) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `<div class="head"><div class="name">${title}</div></div><div style="margin-top:10px">${innerHtml}</div>`;
+            return div;
+        }
+
+        /* =========================
+           Renderer principal
+           ========================= */
+function parseHistory(arr){
+  return (arr||[]).map(pt => ({
+    x: new Date(pt.timestamp),
+    y: pt.value
+  }));
 }
+        function render(data) {
+            // header
+            el('title').textContent = `Fake PV — ${data.gateway || 'local'}`;
+            el('meta').textContent = `version ${data.version || '—'} • updated ${data.updated || '—'} • gateway ${data.gateway || '—'}`;
 
-/* =========================
-   Renderer principal
-   ========================= */
-function render(data){
-  // header
-  el('title').textContent = `Fake PV — ${data.gateway || 'local'}`;
-  el('meta').textContent = `version ${data.version || '—'} • updated ${data.updated || '—'} • gateway ${data.gateway || '—'}`;
+            // empty grid
+            const grid = el('grid'); grid.innerHTML = '';
 
-  // empty grid
-  const grid = el('grid'); grid.innerHTML = '';
-
-  // helper to render W/Wh pair
-  function pairHtml(obj){
-    if(!obj) return `<div class="sub">—</div>`;
-    let html = '<div class="pair">';
-    for(const [k,v] of Object.entries(obj)){
-      html += `<div class="kpi" style="min-width:110px">
+            // helper to render W/Wh pair
+            function pairHtml(obj) {
+                if (!obj) return `<div class="sub">—</div>`;
+                let html = '<div class="pair">';
+                for (const [k, v] of Object.entries(obj)) {
+                    html += `<div class="kpi" style="min-width:110px">
                 <div class="small">${k}</div>
-                <div class="big">${fmtNum(v.value, k==='W' ? 'W' : 'Wh')}</div>
+                <div class="big">${fmtNum(v.value, k === 'W' ? 'W' : 'Wh')}</div>
                 <div class="sub">GA: ${fmt(v.group_address)}</div>
                </div>`;
-    }
-    html += '</div>';
-    return html;
-  }
+                }
+                html += '</div>';
+                return html;
+            }
 
-  // production / consommation / injection / soutirage
-  grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
-  grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
-  grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
-  grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
-  grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
-// Card Puissance (Maison + PV)
-let powerHtml = '';
-if (data.household_power) {
-  powerHtml += `
+            // production / consommation / injection / soutirage
+            grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
+            grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
+            grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
+            grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
+            grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
+            // Card Puissance (Maison + PV)
+            let powerHtml = '';
+            if (data.household_power) {
+                powerHtml += `
     <div class="kpi">
       <div class="small">Maison</div>
       <div class="big">${fmtNum(data.household_power, 'W')}</div>
     </div>
   `;
-}
-if (data.panel_power) {
-  powerHtml += `
+            }
+            if (data.panel_power) {
+                powerHtml += `
     <div class="kpi">
       <div class="small">PV</div>
       <div class="big">${fmtNum(data.panel_power, 'W')}</div>
     </div>
   `;
-}
-if (powerHtml) {
-  grid.appendChild(createCard('⚡ Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
-}
-  // meteo
-  const meteo = data.meteo || {};
-  const meteoHtml = `
+            }
+            if (powerHtml) {
+                grid.appendChild(createCard('⚡ Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
+            }
+            // meteo
+            const meteo = data.meteo || {};
+            const meteoHtml = `
     <div class="row">
-      <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value,'°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
-      <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value,'%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
-      <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value,'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+      <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
+      <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
+      <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
     </div>`;
-  grid.appendChild(createCard('Météo', meteoHtml));
+            grid.appendChild(createCard('Météo', meteoHtml));
 
-  // switch (with interactive toggle)
-  const sw = data.switch || {};
-  const switchHtml = `
+            // switch (with interactive toggle)
+            const sw = data.switch || {};
+            const switchHtml = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div>
         <div class="small">Adresse commande: ${fmt(sw.group_address)}</div>
@@ -197,81 +383,61 @@ if (powerHtml) {
         <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
       </div>
       <div class="switch-ui">
-        <div id="toggleSwitch" class="toggle ${sw.state ? 'on':''}" role="button" title="Basculer">
+        <div id="toggleSwitch" class="toggle ${sw.state ? 'on' : ''}" role="button" title="Basculer">
           <div class="knob"></div>
         </div>
       </div>
     </div>
     <div class="sub" style="margin-top:8px"></div>
   `;
-  grid.appendChild(createCard('Switch (ON/OFF)', switchHtml));
+            grid.appendChild(createCard('Switch (ON/OFF)', switchHtml));
 
-  // volet
-  const v = data.volet || {};
-  const pos = Number(v.position || 0);
-  const voletHtml = `
+            // volet
+            const v = data.volet || {};
+            const pos = Number(v.position || 0);
+            const voletHtml = `
     <div class="small">GA position: ${fmt(v.position_group_address)}</div>
-    <div style="margin-top:8px" class="posbar"><i style="width:${Math.max(0,Math.min(100,pos))}%"></i></div>
+    <div style="margin-top:8px" class="posbar"><i style="width:${Math.max(0, Math.min(100, pos))}%"></i></div>
     <div class="sub" style="margin-top:8px">Position: <strong id="voletPos">${pos}</strong>%</div>
     <div class="sub">GAs: up/down ${fmt(v.up_down_group_address)} • stop ${fmt(v.stop_group_address)} • setpos ${fmt(v.setposition_group_address)}</div>
   `;
-  grid.appendChild(createCard('Volet (position)', voletHtml));
+            grid.appendChild(createCard('Volet (position)', voletHtml));
 
-  // misc: gateway + cycles
-const miscHtml = `
+            // misc: gateway + cycles
+            const miscHtml = `
   <div class="pair">
     <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
     <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s<br>send cycle: ${fmt(data.send_cycle_s)}s</div>
     <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
   </div>
 `;
-if (data.occupancy) {
-  const occState = data.occupancy.state ? 'Present' : 'Absent';
-  grid.appendChild(createCard('🚶 Présence', `
+            if (data.occupancy) {
+                const occState = data.occupancy.state ? 'Present' : 'Absent';
+                grid.appendChild(createCard('🚶 Présence', `
     <div class="kpi">
       <div class="big">${occState}</div>
       <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
       <div class="sub">Présence si conso W > 10% puissance totale </div>
     </div>
   `));
-}
-  grid.appendChild(createCard('🖥️ Système', miscHtml));
-
-
-  // raw json
-  el('rawJson').textContent = JSON.stringify(data, null, 2);
-
-  // attach interactive controls
-  attachInteractivity(data);
-}
-// Card History (full width)
-const historyCard = document.createElement('div');
-historyCard.className = 'card card-history';
-historyCard.style.gridColumn = '1/-1'; // full width
-historyCard.innerHTML = `
-  <div class="head"><div class="name">📈 Historique 48h Production / Injection / Soutirage</div></div>
-  <canvas id="historyChart" height="120"></canvas>
-`;
-grid.appendChild(historyCard);
+            }
+            grid.appendChild(createCard('🖥️ Système', miscHtml));
+            // Card History (full width)
+            const historyCard = document.createElement('div');
+            historyCard.className = 'card card-history';
+            historyCard.style.gridColumn = '1/-1'; // full width
+            historyCard.innerHTML = `
+                <div class="head"><div class="name">📈 Historique 48h Production / Injection / Soutirage</div></div>
+                <canvas id="historyChart" height="120"></canvas>
+            `;
+            grid.appendChild(historyCard);
 
 
 // Prépare les données pour le graphe
-function parseHistory(arr){
-  return (arr||[]).map(pt => ({
-    x: new Date(pt.timestamp),
-    y: pt.value
-  }));
-}
+
 const prod = parseHistory(data.history?.production);
 const inj = parseHistory(data.history?.injection);
 const sout = parseHistory(data.history?.soutirage);
-
-// Labels = toutes les heures sur 48h
-const labels = [];
-for(let h=0; h<48; h++){
-  const d = new Date(Date.now() - (47-h)*3600*1000);
-  labels.push(d);
-}
 
 // Dessine le graphe
 const ctx = document.getElementById('historyChart').getContext('2d');
@@ -326,61 +492,70 @@ window._historyChart = new Chart(ctx, {
 });
 
 
-/* =========================
-   Interactivity (toggle switch + update position sample)
-   ========================= */
-function attachInteractivity(data){
-  // switch
-  const toggle = document.getElementById('toggleSwitch');
-  const stateText = document.getElementById('switchStateText');
-  toggle.onclick = () => {
-    const newState = !data.switch.state;
-    data.switch.state = newState;
-    // Visuel
-    toggle.classList.toggle('on', newState);
-    stateText.textContent = newState ? 'ON' : 'OFF';
-    // Mise à jour du JSON brut
-    el('rawJson').textContent = JSON.stringify(data, null, 2);
-    // Ici on pourrait envoyer la commande sur le bus KNX via un backend / xknx
-    console.log('Simulated switch ->', newState);
-  };
 
-  // volet position: cliquer sur la barre pour déplacer (demo)
-  const posBar = document.querySelector('.posbar > i');
-  const posText = document.getElementById('voletPos');
-  posBar.parentElement.onclick = (ev) => {
-    const rect = posBar.parentElement.getBoundingClientRect();
-    const p = Math.round(100 * (ev.clientX - rect.left) / rect.width);
-    data.volet.position = Math.max(0,Math.min(100,p));
-    posBar.style.width = data.volet.position + '%';
-    posText.textContent = data.volet.position;
-    el('rawJson').textContent = JSON.stringify(data, null, 2);
-    console.log('Simulated volet position ->', data.volet.position);
-  };
-}
+            // raw json
+            el('rawJson').textContent = JSON.stringify(data, null, 2);
 
-async function chargerJSON() {
-    try {
-        // fetch depuis le même serveur (/) → on récupère ton JSON KNX/PV
-        const response = await fetch(window.location.origin + '/data.json');
-        if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
-        const data = await response.json();
+            // attach interactive controls
+            attachInteractivity(data);
+        }
 
-        // on appelle la fonction principale de rendu
-        render(data);
-    } catch (err) {
-        el('rawJson').textContent = '❌ Erreur de chargement : ' + err;
-    }
-}
+        /* =========================
+           Interactivity (toggle switch + update position sample)
+           ========================= */
+        function attachInteractivity(data) {
+            // switch
+            const toggle = document.getElementById('toggleSwitch');
+            const stateText = document.getElementById('switchStateText');
+            toggle.onclick = () => {
+                const newState = !data.switch.state;
+                data.switch.state = newState;
+                // Visuel
+                toggle.classList.toggle('on', newState);
+                stateText.textContent = newState ? 'ON' : 'OFF';
+                // Mise à jour du JSON brut
+                el('rawJson').textContent = JSON.stringify(data, null, 2);
+                // Ici on pourrait envoyer la commande sur le bus KNX via un backend / xknx
+                console.log('Simulated switch ->', newState);
+            };
 
-// Appel au chargement automatique à l'ouverture
-chargerJSON(); // Charge immédiatement au démarrage
-setInterval(chargerJSON, 5000); // Puis toutes les 5s
+            // volet position: cliquer sur la barre pour déplacer (demo)
+            const posBar = document.querySelector('.posbar > i');
+            const posText = document.getElementById('voletPos');
+            posBar.parentElement.onclick = (ev) => {
+                const rect = posBar.parentElement.getBoundingClientRect();
+                const p = Math.round(100 * (ev.clientX - rect.left) / rect.width);
+                data.volet.position = Math.max(0, Math.min(100, p));
+                posBar.style.width = data.volet.position + '%';
+                posText.textContent = data.volet.position;
+                el('rawJson').textContent = JSON.stringify(data, null, 2);
+                console.log('Simulated volet position ->', data.volet.position);
+            };
+        }
 
-/* =========================
-   Initial render
-   ========================= */
+        async function chargerJSON() {
+            try {
+                // fetch depuis le même serveur (/) → on récupère ton JSON KNX/PV
+                const response = await fetch(window.location.origin + '/data.json');
+                if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+                const data = await response.json();
 
-</script>
+                // on appelle la fonction principale de rendu
+                render(data);
+            } catch (err) {
+                el('rawJson').textContent = '❌ Erreur de chargement : ' + err;
+            }
+        }
+
+        // Appel au chargement automatique à l'ouverture
+        chargerJSON(); // Charge immédiatement au démarrage
+        setInterval(chargerJSON, 5000); // Puis toutes les 5s
+
+        /* =========================
+           Initial render
+           ========================= */
+
+    </script>
 </body>
+
 </html>
