@@ -1,7 +1,7 @@
 [Unit]
 Description=Git auto-pull at startup
 After=fakeknxpv.service
-Requires=fakeknxpv.service
+# Requires=fakeknxpv.service
 Wants=network-online.target
 
 [Service]
@@ -12,7 +12,7 @@ ExecStart=/home/pi/git-update.sh
 WorkingDirectory=/home/pi/fakeknxpv
 StandardOutput=journal
 StandardError=journal
-RemainAfterExit=false
+RemainAfterExit=no
 
 [Install]
 WantedBy=multi-user.target
