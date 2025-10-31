@@ -3,6 +3,7 @@
 cd /home/pi/ || exit 1
 sudo apt-get install -y git
 git clone https://github.com/couchounou/fakeknxpv.git
+sudo git config --global --add safe.directory /home/pi/fakeknxpv
 sudo apt-get install -y python3-pip
 python3 -m venv ./venv
 source venv/bin/activate
