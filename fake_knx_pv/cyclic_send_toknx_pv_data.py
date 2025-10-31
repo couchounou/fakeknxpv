@@ -124,7 +124,7 @@ inj_index_file_path = "/boot/firmware/index_inject.txt" if os.path.exists("/boot
 sout_index_file_path = "/boot/firmware/index_sout.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_sout.txt")
 conso_index_file_path = "/boot/firmware/index_conso.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_conso.txt")
 prod_index_file_path = "/boot/firmware/index_prod.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_prod.txt")
-config_file = "/boot/firmware/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
+config_file = "/boot/firmware/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
 print(f"Using files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}\n {config_file=}")
 
 # create index files if not exists and read values
@@ -383,14 +383,11 @@ async def send_power_data(
 
 def load_config():
     global json_status
-    if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg"):
-        path = "/boot/firmware/cyclic_send_toknx_pv_data.cfg"
-    else:
-        path = "cyclic_send_toknx_pv_data.cfg"
+    print(f"Loading config from {config_file}")
     config = configparser.ConfigParser()
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Config file {path} not found")
-    config.read(path)
+    if not os.path.exists(config_file):
+        raise FileNotFoundError(f"Config file {config_file} not found")
+    config.read(config_file)
     print(f"Config sections: {config.sections()}")
     # --- CONFIG section ---
     lon = config.getfloat("CONFIG", "lon")
