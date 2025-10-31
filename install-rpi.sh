@@ -26,3 +26,11 @@ sudo systemctl start gitupdate.service
 sudo systemctl enable fakeknxpv.service
 sudo systemctl start fakeknxpv.service
 echo "Installation complete."
+
+sudo apt clean
+sudo apt autoclean
+sudo apt autoremove -y
+sudo rm -rf /tmp/* /var/tmp/*
+sudo rm -rf /var/cache/apt/archives/*
+sudo journalctl --rotate
+sudo journalctl --vacuum-time=1d
