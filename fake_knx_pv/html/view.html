@@ -156,7 +156,25 @@ function render(data){
   grid.appendChild(createCard('Injection', pairHtml(data.injection)));
   grid.appendChild(createCard('Injection / Soutirage', pairHtml(data.inj_sout)));
   grid.appendChild(createCard('Soutirage', pairHtml(data.soutirage)));
+    // household_power
+    if (data.household_power) {
+    grid.appendChild(createCard('Puissance Maison', `
+        <div class="kpi">
+        <div class="big">${fmtNum(data.household_power.value, 'W')}</div>
+        <div class="sub">GA: ${fmt(data.household_power.group_address)}</div>
+        </div>
+    `));
+    }
 
+    // panel_power
+    if (data.panel_power) {
+    grid.appendChild(createCard('Puissance PV', `
+        <div class="kpi">
+        <div class="big">${fmtNum(data.panel_power.value, 'W')}</div>
+        <div class="sub">GA: ${fmt(data.panel_power.group_address)}</div>
+        </div>
+    `));
+    }
   // meteo
   const meteo = data.meteo || {};
   const meteoHtml = `

@@ -527,6 +527,10 @@ def load_config():
     json_status["volet"]["setposition_group_address"] = config.get("KNX", "volet_setposition_group_address", fallback="7/1/5")
     json_status["volet"]["position_group_address"] = config.get("KNX", "volet_position_group_address", fallback="7/1/6")
     json_status["updated"] = datetime.now().isoformat()
+    json_status["longitude"] = lon
+    json_status["latitude"] = lat
+    json_status["panel_power"] = panel_power
+    json_status["household_power"] = household_power    
 
     # You can return a dict, a namedtuple, or just print for now
     return {
