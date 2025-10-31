@@ -500,12 +500,12 @@ def load_config():
         "pressure_group": config.get("KNX", "pressure_group"),
         "temperature_group": config.get("KNX", "temperature_group"),
         "humidity_group": config.get("KNX", "humidity_group"),
-        "switch_group": config.get("KNX", "switch_group"),
-        "switch_state_group": config.get("KNX", "switch_state_group"),
-        "volet_up_down_group_address": config.get("KNX", "volet_up_down_group_address"),
-        "volet_stop_group_address": config.get("KNX", "volet_stop_group_address"),
-        "volet_setposition_group_address": config.get("KNX", "volet_setposition_group_address"),
-        "volet_position_group_address": config.get("KNX", "volet_position_group_address")
+        "switch_group": config.get("KNX", "switch_group", fallback="7/1/1"),
+        "switch_state_group": config.get("KNX", "switch_state_group", fallback="7/1/2"),
+        "volet_up_down_group_address": config.get("KNX", "volet_up_down_group_address", fallback="7/1/3"),
+        "volet_stop_group_address": config.get("KNX", "volet_stop_group_address", fallback="7/1/4"),
+        "volet_setposition_group_address": config.get("KNX", "volet_setposition_group_address", fallback="7/1/5"),
+        "volet_position_group_address": config.get("KNX", "volet_position_group_address", fallback="7/1/6")
     }
 
     json_status["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group")
@@ -520,7 +520,7 @@ def load_config():
     json_status["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group")
     json_status["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group")
     json_status["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group")
-    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback="7/1/1")
+    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback=)
     json_status["switch"]["state_group_address"] = config.get("KNX", "switch_state_group", fallback="7/1/2")
     json_status["volet"]["up_down_group_address"] = config.get("KNX", "volet_up_down_group_address", fallback="7/1/3")
     json_status["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
