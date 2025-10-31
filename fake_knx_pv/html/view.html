@@ -226,10 +226,11 @@ if (powerHtml) {
     <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
   </div>
   `;
-  if (data.occupancy) {
-  grid.appendChild(createCard('🚶 Presence', `
+if (data.occupancy) {
+  const occState = data.occupancy.state ? 'Present' : 'Absent';
+  grid.appendChild(createCard('🚶 Présence', `
     <div class="kpi">
-      <div class="big">${fmtNum(data.occupancy.state)}</div>
+      <div class="big">${occState}</div>
       <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
       <div class="sub">Présence si conso W > 10% puissance totale </div>
     </div>
