@@ -220,8 +220,7 @@ if (powerHtml) {
   // misc: gateway + cycles
 const miscHtml = `
   <div class="pair">
-    <div class="chip">Gateway IP: ${fmt(data.gateway)}</div>
-    <div class="chip">MY IP: ${fmt(data.ipaddress)}</div>
+    <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
     <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s</div>
     <div class="chip">send cycle: ${fmt(data.send_cycle_s)}s</div>
     <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
