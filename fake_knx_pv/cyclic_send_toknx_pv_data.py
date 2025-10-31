@@ -1,4 +1,5 @@
 import http.server
+from datetime import timedelta
 import socketserver
 import os
 import asyncio
@@ -417,10 +418,12 @@ async def send_power_data(
                 knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
                 knx_messages_log += f"Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa\n"
+                
                 # Update history
                 update_history(json_status["history"]["production"], int(production_W))
-                update_history(json_status["history"]["injection"], abs(int(inj_w)))
-                update_history(json_status["history"]["soutirage"], abs(int(sout_w)))
+                update_history(json_status["history"]["injection"], int(-inj_w))
+                update_history(json_status["history"]["soutirage"], int(sout_w))
+                
                 json_status["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
                 json_status["production"]["W"]["value"] = int(production_W)
                 json_status["production"]["Wh"]["value"] = int(prod_index)
