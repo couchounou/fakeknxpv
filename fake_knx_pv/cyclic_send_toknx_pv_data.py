@@ -520,7 +520,7 @@ def load_config():
     json_status["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group")
     json_status["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group")
     json_status["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group")
-    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback=)
+    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback="7/1/1")
     json_status["switch"]["state_group_address"] = config.get("KNX", "switch_state_group", fallback="7/1/2")
     json_status["volet"]["up_down_group_address"] = config.get("KNX", "volet_up_down_group_address", fallback="7/1/3")
     json_status["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
