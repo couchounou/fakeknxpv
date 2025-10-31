@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard PV — aperçu JSON</title>
+<style>
+  :root{
+    --bg:#0f1720;
+    --card:#0b1220;
+    --muted:#9aa7b2;
+    --accent:#16a34a;
+    --accent2:#06b6d4;
+    --glass: rgba(255,255,255,0.03);
+    --card-radius:14px;
+    --gap:12px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #e6eef3;
+  }
+  html,body{height:100%;margin:0;background:
+    linear-gradient(180deg,#071020 0%, #071827 55%, #061218 100%);}
+  .wrap{max-width:1100px;margin:28px auto;padding:20px;display:flex;flex-direction:column;gap:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .title{display:flex;gap:14px;align-items:center}
+  .logo{
+    width:56px;height:56px;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-weight:700;
+    box-shadow:0 6px 18px rgba(6,182,212,0.12), inset 0 -6px 20px rgba(255,255,255,0.06);
+  }
+  h1{font-size:18px;margin:0}
+  .meta{font-size:13px;color:var(--muted)}
+  .controls{display:flex;gap:10px;align-items:center}
+  .btn{
+    background:var(--glass);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;color:var(--muted);
+    cursor:pointer;font-size:13px;
+  }
+  .btn:hover{filter:brightness(1.06)}
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);
+  }
+  @media (max-width:960px){ .grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} .wrap{padding:12px} }
+
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--card-radius);padding:14px;box-shadow: 0 6px 24px rgba(2,6,23,0.6);
+    border:1px solid rgba(255,255,255,0.02);
+  }
+  .card .head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card .name{font-weight:600}
+  .card .value{font-size:20px;font-weight:700}
+  .sub{font-size:13px;color:var(--muted);margin-top:6px}
+
+  .row{display:flex;align-items:center;gap:10px}
+  .kpi{display:flex;flex-direction:column;gap:6px;flex:1}
+  .kpi .big{font-size:26px;font-weight:800}
+  .small{font-size:12px;color:var(--muted)}
+
+  .pair{display:flex;flex-direction:row;gap:12px;align-items:center}
+  .chip{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:8px;font-size:13px;color:var(--muted)}
+
+  /* switch look */
+  .switch-ui{display:inline-flex;align-items:center;gap:10px}
+  .toggle{
+    width:46px;height:26px;background:rgba(255,255,255,0.06);border-radius:20px;padding:3px;display:flex;align-items:center;
+    transition:all .18s;cursor:pointer;
+  }
+  .knob{width:20px;height:20px;border-radius:50%;background:white;transform:translateX(0);transition:transform .18s}
+  .toggle.on{background:linear-gradient(90deg,#16a34a 0%, #06b6d4 100%)}
+  .toggle.on .knob{transform:translateX(20px);background:#082018}
+  /* progress bar for position */
+  .posbar{height:10px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden}
+  .posbar > i{display:block;height:100%;background:linear-gradient(90deg,#06b6d4,#16a34a);width:0%}
+  footer{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+  pre.json{background:#071020;border-radius:10px;padding:12px;color:#9ad8ff;overflow:auto;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <div class="logo">PV</div>
+      <div>
+        <h1 id="title">Fake PV — Dashboard</h1>
+        <div class="meta" id="meta">version — updated — gateway</div>
+      </div>
+    </div>
+
+    <div class="controls">
+    <!-- 
+      <button class="btn" id="btnLoad">Charger JSON</button>
+      <button class="btn" id="btnFetch">Fetch depuis URL</button>
+      <input id="fetchUrl" class="btn" style="min-width:260px" value="" placeholder="URL JSON (ex: http://host/state.json)">-->
+    </div>
+  </header>
+
+  <section class="grid" id="grid">
+    <!-- Cards injected here -->
+  </section>
+
+  <section class="card" style="margin-top:6px">
+    <div class="head"><div class="name">Données (JSON brut)</div><div class="small">Copie / debug</div></div>
+    <pre class="json" id="rawJson"></pre>
+  </section>
+
+  <footer>Saved cycle / send cycle visible dans JSON • Ouvrir le fichier dans navigateur pour visualiser localement</footer>
+</div>
+
+<script>
+
+
+/* =========================
+   Helpers
+   ========================= */
+const el = id => document.getElementById(id);
+const fmt = v => (v === null || v === undefined) ? '—' : v;
+const fmtNum = (v, unit='') => (v===null||v===undefined) ? '—' : (Number(v).toLocaleString() + (unit ? ' ' + unit : ''));
+
+function createCard(title, innerHtml){
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `<div class="head"><div class="name">${title}</div></div><div style="margin-top:10px">${innerHtml}</div>`;
+  return div;
+}
+
+/* =========================
+   Renderer principal
+   ========================= */
+function render(data){
+  // header
+  el('title').textContent = `Fake PV — ${data.gateway || 'local'}`;
+  el('meta').textContent = `version ${data.version || '—'} • updated ${data.updated || '—'} • gateway ${data.gateway || '—'}`;
+
+  // empty grid
+  const grid = el('grid'); grid.innerHTML = '';
+
+  // helper to render W/Wh pair
+  function pairHtml(obj){
+    if(!obj) return `<div class="sub">—</div>`;
+    let html = '<div class="pair">';
+    for(const [k,v] of Object.entries(obj)){
+      html += `<div class="kpi" style="min-width:110px">
+                <div class="small">${k}</div>
+                <div class="big">${fmtNum(v.value, k==='W' ? 'W' : 'Wh')}</div>
+                <div class="sub">GA: ${fmt(v.group_address)}</div>
+               </div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // production / consommation / injection / soutirage
+  grid.appendChild(createCard('Production', pairHtml(data.production)));
+  grid.appendChild(createCard('Consommation', pairHtml(data.consommation)));
+  grid.appendChild(createCard('Injection', pairHtml(data.injection)));
+  grid.appendChild(createCard('Injection / Soutirage', pairHtml(data.inj_sout)));
+  grid.appendChild(createCard('Soutirage', pairHtml(data.soutirage)));
+
+  // meteo
+  const meteo = data.meteo || {};
+  const meteoHtml = `
+    <div class="row">
+      <div class="kpi"><div class="small">Temp</div><div class="value">${fmtNum(meteo.temperature?.value,'°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
+      <div class="kpi"><div class="small">Humidity</div><div class="value">${fmtNum(meteo.humidity?.value,'%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
+      <div class="kpi"><div class="small">Pressure</div><div class="value">${fmtNum(meteo.pressure?.value,'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+    </div>`;
+  grid.appendChild(createCard('Météo', meteoHtml));
+
+  // switch (with interactive toggle)
+  const sw = data.switch || {};
+  const switchHtml = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div>
+        <div class="small">Adresse commande: ${fmt(sw.group_address)}</div>
+        <div class="small">Adresse état: ${fmt(sw.state_group_address)}</div>
+        <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
+      </div>
+      <div class="switch-ui">
+        <div id="toggleSwitch" class="toggle ${sw.state ? 'on':''}" role="button" title="Basculer">
+          <div class="knob"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:8px">Note : le bouton est simulé localement. Si tu veux qu'il envoie un telegram KNX, connecte-toi via xknx / tunnel.</div>
+  `;
+  grid.appendChild(createCard('Switch (ON/OFF)', switchHtml));
+
+  // volet
+  const v = data.volet || {};
+  const pos = Number(v.position || 0);
+  const voletHtml = `
+    <div class="small">GA position: ${fmt(v.position_group_address)}</div>
+    <div style="margin-top:8px" class="posbar"><i style="width:${Math.max(0,Math.min(100,pos))}%"></i></div>
+    <div class="sub" style="margin-top:8px">Position: <strong id="voletPos">${pos}</strong>%</div>
+    <div class="sub">GAs: up/down ${fmt(v.up_down_group_address)} • stop ${fmt(v.stop_group_address)} • setpos ${fmt(v.setposition_group_address)}</div>
+  `;
+  grid.appendChild(createCard('Volet (position)', voletHtml));
+
+  // misc: gateway + cycles
+  const miscHtml = `
+    <div class="pair">
+      <div class="chip">Gateway: ${fmt(data.gateway)}</div>
+      <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s</div>
+      <div class="chip">send cycle: ${fmt(data.send_cycle_s)}s</div>
+    </div>
+  `;
+  grid.appendChild(createCard('Système', miscHtml));
+
+  // raw json
+  el('rawJson').textContent = JSON.stringify(data, null, 2);
+
+  // attach interactive controls
+  attachInteractivity(data);
+}
+
+/* =========================
+   Interactivity (toggle switch + update position sample)
+   ========================= */
+function attachInteractivity(data){
+  // switch
+  const toggle = document.getElementById('toggleSwitch');
+  const stateText = document.getElementById('switchStateText');
+  toggle.onclick = () => {
+    const newState = !data.switch.state;
+    data.switch.state = newState;
+    // Visuel
+    toggle.classList.toggle('on', newState);
+    stateText.textContent = newState ? 'ON' : 'OFF';
+    // Mise à jour du JSON brut
+    el('rawJson').textContent = JSON.stringify(data, null, 2);
+    // Ici on pourrait envoyer la commande sur le bus KNX via un backend / xknx
+    console.log('Simulated switch ->', newState);
+  };
+
+  // volet position: cliquer sur la barre pour déplacer (demo)
+  const posBar = document.querySelector('.posbar > i');
+  const posText = document.getElementById('voletPos');
+  posBar.parentElement.onclick = (ev) => {
+    const rect = posBar.parentElement.getBoundingClientRect();
+    const p = Math.round(100 * (ev.clientX - rect.left) / rect.width);
+    data.volet.position = Math.max(0,Math.min(100,p));
+    posBar.style.width = data.volet.position + '%';
+    posText.textContent = data.volet.position;
+    el('rawJson').textContent = JSON.stringify(data, null, 2);
+    console.log('Simulated volet position ->', data.volet.position);
+  };
+}
+
+async function chargerJSON() {
+    try {
+        // fetch depuis le même serveur (/) → on récupère ton JSON KNX/PV
+        const response = await fetch(window.location.origin + '/data.json');
+        if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+        const data = await response.json();
+
+        // on appelle la fonction principale de rendu
+        render(data);
+    } catch (err) {
+        el('rawJson').textContent = '❌ Erreur de chargement : ' + err;
+    }
+}
+
+// Appel au chargement automatique à l'ouverture
+chargerJSON();
+
+/* =========================
+   Initial render
+   ========================= */
+
+</script>
+</body>
+</html>

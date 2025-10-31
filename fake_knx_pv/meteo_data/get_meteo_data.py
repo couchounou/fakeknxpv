@@ -7,6 +7,7 @@ def get_meteo_data(lat, lon, api_key=None):
         API_KEY = api_key
         URL = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
         logging.info(URL)
+        print(URL)
         response = requests.get(URL)
         data = response.json()
         cloud_coverage = None

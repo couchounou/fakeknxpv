@@ -13,6 +13,10 @@ from xknx.dpt import (
     DPTPressure2Byte,
     DPTTemperature,
     DPTHumidity,
+    DPTSwitch,
+    DPTScaling,
+    DPTBinary,
+    DPTArray
 )
 
 import threading
@@ -23,8 +27,9 @@ from conso_data import get_conso_data
 from meteo_data import get_meteo_data
 import configparser
 import socket
-
+from devices import volet
 import socket
+
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -84,11 +89,18 @@ def run_simple_http_server(text="", port=80):
                     </root>
                     """)
                 self.wfile.write(xml.encode("utf-8"))
-            else:
+            elif self.path == "/data.json":
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps(json_status).encode("utf-8"))
+            else:
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
+                html = os.path.join(basepath, "html", "view.html")
+                with open(html, "r", encoding="utf-8") as myfile:
+                    self.wfile.write(myfile.read().encode("utf-8"))
 
     with socketserver.TCPServer(("", port), Handler) as httpd:
         print(f"Serving HTTP on port {port}...")
@@ -106,9 +118,12 @@ json_status={
         "temperature": {},
         "humidity": {},
         "pressure": {}
-    }
+    },
+    "switch": {"group_address": "", "state_group_address": "", "state": False},
+    "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""}
 }
 
+volet = volet()
 
 last_updated_timestamp = last_saved_timestamp = datetime.now().timestamp()
 inj_index = sout_index = conso_index = prod_index = 0.0
@@ -204,7 +219,8 @@ async def send_power_telegram(
     group_address,
     value
 ):
-    await send_telegram(xknx, group_address, DPTPower, value)
+    dpt = DPTPower.to_knx(int(value))
+    await send_telegram(xknx, group_address, dpt)
 
 
 async def send_energy_telegram(
@@ -212,21 +228,36 @@ async def send_energy_telegram(
     group_address,
     value
 ):
-    await send_telegram(xknx, group_address, DPTActiveEnergy, value)
+    dpt = DPTActiveEnergy.to_knx(int(value))
+    await send_telegram(xknx, group_address, dpt)
+
+
+async def send_position_telegram(
+    xknx,
+    group_address,
+    value
+):
+    dpt = DPTScaling.to_knx(value)
+    await send_telegram(xknx, group_address, dpt)
 
 
 async def send_telegram(
     xknx,
-    group_address,
-    dpt,
-    value
+    group_address,  
+    dpt
 ):
     await xknx.telegrams.put(
         Telegram(
             destination_address=GroupAddress(group_address),
-            payload=GroupValueWrite(dpt.to_knx(int(value))),
+            payload=GroupValueWrite(dpt),
         )
     )
+
+
+async def send_switch_telegram(xknx, relay_state, group_address):
+    print(f"Sending relay state update to {group_address}: {relay_state}")
+    dpt = DPTSwitch.to_knx(relay_state)
+    await send_telegram(xknx, group_address, dpt)
 
 
 async def send_power_data(
@@ -269,9 +300,64 @@ async def send_power_data(
     print("XKNX starting...")
     await xknx.start()
     print("XKNX started")
+
     global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index, json_status
+
+    # Relais virtuel KNX : écoute sur 15/1/1, retour d’état sur 15/1/2
+    def relay_listener(telegram):
+        if telegram.destination_address == GroupAddress(json_status["switch"]["group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+            value = telegram.payload.value.value
+            print(f"Relay command received value: {value}") 
+            switch_state = bool(value)
+            json_status["switch"]["state"] = switch_state
+            print(f"Switch state changed to {switch_state}, sending update to {json_status['switch']['state_group_address']}")
+            asyncio.create_task(send_switch_telegram(xknx, switch_state, json_status['switch']['state_group_address']))
+
+    # Ajoute le listener à xknx
+    xknx.telegram_queue.register_telegram_received_cb(relay_listener)
+
+    def volet_up_down_listener(telegram):
+        if telegram.destination_address == GroupAddress(json_status["volet"]["up_down_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+            knx_value = telegram.payload.value.value
+            print(f"Volet up/down command received value: {knx_value}")
+            if int(knx_value) == 0:
+                print("Volet up command received")
+                volet.monter()
+            else:
+                print("Volet down command received")
+                volet.descendre()
+
+    xknx.telegram_queue.register_telegram_received_cb(volet_up_down_listener)
+
+    def volet_stop_listener(telegram):
+        if telegram.destination_address == GroupAddress(json_status["volet"]["stop_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+            print("Volet stop command received")
+            volet.stop()
+            position = volet.get_position()
+            print(f"Volet position statusd: {position}%")
+            json_status["volet"]["position"] = position
+            print(f"Volet position changed to {position}%, sending update to {json_status['volet']['position_group_address']}")
+            asyncio.create_task(send_position_telegram(xknx, json_status['volet']['position_group_address'], position))
+
+    xknx.telegram_queue.register_telegram_received_cb(volet_stop_listener)
+
+    def volet_position_listener(telegram):
+        if telegram.destination_address == GroupAddress(json_status["volet"]["setposition_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+            raw = telegram.payload.value.value
+            position = int(raw[0] * 100 / 255)
+            print(f"Volet position command received: {position}%")
+            volet.set_position(position)
+            json_status["volet"]["position"] = position
+            print(f"Volet position changed to {position}%, sending update to {json_status['volet']['position_group_address']}")
+            # Envoie la position réelle du volet encodée en DPTScaling
+            asyncio.create_task(send_position_telegram(xknx, json_status['volet']['position_group_address'], position))
+
+    xknx.telegram_queue.register_telegram_received_cb(volet_position_listener)
+
+
     try:
         while True:
+
             knx_messages_log = ""  # Reset log at each loop
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
@@ -323,6 +409,7 @@ async def send_power_data(
                 json_status["meteo"]["temperature"]["value"] = temperature
                 json_status["meteo"]["humidity"]["value"] = humidity
                 json_status["updated"] = datetime.now().isoformat()
+
 
                 # Send inj-sout data to KNX
                 knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
@@ -413,6 +500,12 @@ def load_config():
         "pressure_group": config.get("KNX", "pressure_group"),
         "temperature_group": config.get("KNX", "temperature_group"),
         "humidity_group": config.get("KNX", "humidity_group"),
+        "switch_group": config.get("KNX", "switch_group"),
+        "switch_state_group": config.get("KNX", "switch_state_group"),
+        "volet_up_down_group_address": config.get("KNX", "volet_up_down_group_address"),
+        "volet_stop_group_address": config.get("KNX", "volet_stop_group_address"),
+        "volet_setposition_group_address": config.get("KNX", "volet_setposition_group_address"),
+        "volet_position_group_address": config.get("KNX", "volet_position_group_address")
     }
 
     json_status["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group")
@@ -427,6 +520,12 @@ def load_config():
     json_status["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group")
     json_status["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group")
     json_status["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group")
+    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback="7/1/1")
+    json_status["switch"]["state_group_address"] = config.get("KNX", "switch_state_group", fallback="7/1/2")
+    json_status["volet"]["up_down_group_address"] = config.get("KNX", "volet_up_down_group_address", fallback="7/1/3")
+    json_status["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
+    json_status["volet"]["setposition_group_address"] = config.get("KNX", "volet_setposition_group_address", fallback="7/1/5")
+    json_status["volet"]["position_group_address"] = config.get("KNX", "volet_position_group_address", fallback="7/1/6")
     json_status["updated"] = datetime.now().isoformat()
 
     # You can return a dict, a namedtuple, or just print for now
