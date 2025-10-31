@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=pi
-ExecStart=/home/pi/git-update.sh
+ExecStart=/home/pi/fakeknxpv/services/git-update.sh
 WorkingDirectory=/home/pi/fakeknxpv
 StandardOutput=journal
 StandardError=journal
