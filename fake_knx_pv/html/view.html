@@ -154,8 +154,8 @@ function render(data){
   grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
   grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
   grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
-  grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
   grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
+  grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
 // Card Puissance (Maison + PV)
 let powerHtml = '';
 if (data.household_power) {
