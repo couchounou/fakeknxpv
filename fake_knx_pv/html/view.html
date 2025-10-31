@@ -51,7 +51,7 @@
   .card .name{font-weight:600}
   .card .value{font-size:20px;font-weight:700}
   .sub{font-size:13px;color:var(--muted);margin-top:6px}
-
+  .card-history { grid-column: 1/-1; }
   .row{display:flex;align-items:center;gap:10px}
   .kpi{display:flex;flex-direction:column;gap:6px;flex:1}
   .kpi .big{font-size:26px;font-weight:800}
@@ -237,12 +237,94 @@ if (data.occupancy) {
 }
   grid.appendChild(createCard('🖥️ Système', miscHtml));
 
+
   // raw json
   el('rawJson').textContent = JSON.stringify(data, null, 2);
 
   // attach interactive controls
   attachInteractivity(data);
 }
+// Card History (full width)
+const historyCard = document.createElement('div');
+historyCard.className = 'card card-history';
+historyCard.style.gridColumn = '1/-1'; // full width
+historyCard.innerHTML = `
+  <div class="head"><div class="name">📈 Historique 48h Production / Injection / Soutirage</div></div>
+  <canvas id="historyChart" height="120"></canvas>
+`;
+grid.appendChild(historyCard);
+
+
+// Prépare les données pour le graphe
+function parseHistory(arr){
+  return (arr||[]).map(pt => ({
+    x: new Date(pt.timestamp),
+    y: pt.value
+  }));
+}
+const prod = parseHistory(data.history?.production);
+const inj = parseHistory(data.history?.injection);
+const sout = parseHistory(data.history?.soutirage);
+
+// Labels = toutes les heures sur 48h
+const labels = [];
+for(let h=0; h<48; h++){
+  const d = new Date(Date.now() - (47-h)*3600*1000);
+  labels.push(d);
+}
+
+// Dessine le graphe
+const ctx = document.getElementById('historyChart').getContext('2d');
+if(window._historyChart) window._historyChart.destroy();
+window._historyChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    datasets: [
+      {
+        label: 'Production',
+        data: prod,
+        borderColor: '#16a34a',
+        backgroundColor: 'rgba(22,163,74,0.08)',
+        tension: 0.2,
+        pointRadius: 0,
+      },
+      {
+        label: 'Injection',
+        data: inj,
+        borderColor: '#06b6d4',
+        backgroundColor: 'rgba(6,182,212,0.08)',
+        tension: 0.2,
+        pointRadius: 0,
+      },
+      {
+        label: 'Soutirage',
+        data: sout,
+        borderColor: '#f59e42',
+        backgroundColor: 'rgba(245,158,66,0.08)',
+        tension: 0.2,
+        pointRadius: 0,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'hour', tooltipFormat: 'HH:mm' },
+        title: { display: true, text: 'Heure' }
+      },
+      y: {
+        title: { display: true, text: 'W' },
+        beginAtZero: true
+      }
+    },
+    plugins: {
+      legend: { position: 'top' }
+    }
+  }
+});
+
 
 /* =========================
    Interactivity (toggle switch + update position sample)

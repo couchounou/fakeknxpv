@@ -122,7 +122,12 @@ json_status={
     },
     "switch": {"group_address": "", "state_group_address": "", "state": False},
     "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""},
-    "occupancy": {"group_address": "", "state_group_address": "", "state": False}
+    "occupancy": {"group_address": "", "state_group_address": "", "state": False},
+    "history": {
+        "production": [],
+        "injection": [],
+        "soutirage": []
+    }
 }
 
 volet = volet()
@@ -169,6 +174,15 @@ if os.path.exists(prod_index_file_path):
 else:
     with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
         myfile.write("0.0")
+
+
+def update_history(history_list, value, max_hours=48):
+    now = datetime.now().isoformat()
+    history_list.append({"timestamp": now, "value": value})
+    # Supprime les entrées de plus de 48h
+    cutoff = datetime.now() - timedelta(hours=max_hours)
+    # On garde uniquement les entrées récentes
+    history_list[:] = [item for item in history_list if datetime.fromisoformat(item["timestamp"]) >= cutoff]
 
 
 def encode_dpt16(text: str) -> bytes:
@@ -262,7 +276,7 @@ async def send_switch_telegram(xknx, relay_state, group_address):
     await send_telegram(xknx, group_address, dpt)
 
 
-async def send_switch_telegram(xknx, relay_state, group_address):
+async def send_occupancy_telegram(xknx, relay_state, group_address):
     print(f"Sending occupancy state update to {group_address}: {relay_state}")
     dpt = DPTOccupancy.to_knx(relay_state)
     await send_telegram(xknx, group_address, dpt)
@@ -403,7 +417,10 @@ async def send_power_data(
                 knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
                 knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
                 knx_messages_log += f"Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa\n"
-
+                # Update history
+                update_history(json_status["history"]["production"], int(production_W))
+                update_history(json_status["history"]["injection"], abs(int(inj_w)))
+                update_history(json_status["history"]["soutirage"], abs(int(sout_w)))
                 json_status["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
                 json_status["production"]["W"]["value"] = int(production_W)
                 json_status["production"]["Wh"]["value"] = int(prod_index)
