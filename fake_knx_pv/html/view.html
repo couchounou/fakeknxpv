@@ -262,7 +262,7 @@ async function chargerJSON() {
 }
 
 // Appel au chargement automatique à l'ouverture
-chargerJSON();
+setInterval(chargerJSON, 10000);
 
 /* =========================
    Initial render
