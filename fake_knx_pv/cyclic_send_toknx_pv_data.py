@@ -119,7 +119,8 @@ json_status={
     "meteo": {
         "temperature": {},
         "humidity": {},
-        "pressure": {}
+        "pressure": {},
+        "clouds": {}
     },
     "switch": {"group_address": "", "state_group_address": "", "state": False},
     "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""},
@@ -424,6 +425,7 @@ async def send_power_data(
                 update_history(json_status["history"]["injection"], int(-inj_w))
                 update_history(json_status["history"]["soutirage"], int(sout_w))
                 
+
                 json_status["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
                 json_status["production"]["W"]["value"] = int(production_W)
                 json_status["production"]["Wh"]["value"] = int(prod_index)
@@ -436,6 +438,7 @@ async def send_power_data(
                 json_status["meteo"]["pressure"]["value"] = pressure
                 json_status["meteo"]["temperature"]["value"] = temperature
                 json_status["meteo"]["humidity"]["value"] = humidity
+                json_status["meteo"]["clouds"]["value"] = myclouds * 100
                 json_status["updated"] = datetime.now().isoformat()
 
 

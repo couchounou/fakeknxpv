@@ -370,6 +370,7 @@ function parseHistory(arr){
       <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
       <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
       <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+      <div class="kpi"><div class="small">☁️ Nuages</div><div class="value">${fmtNum(meteo.clouds?.value, '%')}</div><div class="sub">GA ${fmt(meteo.clouds?.group_address)}</div></div>
     </div>`;
             grid.appendChild(createCard('Météo', meteoHtml));
 
