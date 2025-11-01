@@ -431,12 +431,11 @@ async def send_power_data(
                 json_status["switch"]["last_action_time"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
-                if json_status["switch"]["state"]: 
-                    if json_status["switch"]["last_action_time"] < datetime.now() - timedelta(minutes=12):
-                        json_status["switch"]["state"] = not json_status["switch"]["state"]
-                        json_status["switch"]["last_action_time"] = datetime.now().isoformat()
-                        knx_messages_log += f"Auto switch OFF after 1 hour to group={json_status['switch']['state_group_address']}\n"
-                        await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
+                if datetime.fromisoformat(json_status["switch"]["last_action_time"]) < datetime.now() - timedelta(minutes=12):
+                    json_status["switch"]["state"] = not json_status["switch"]["state"]
+                    json_status["switch"]["last_action_time"] = datetime.now().isoformat()
+                    knx_messages_log += f"Auto switch OFF after 1 hour to group={json_status['switch']['state_group_address']}\n"
+                    await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
 
                 # occupancy detection
                 occupancy_state = False
