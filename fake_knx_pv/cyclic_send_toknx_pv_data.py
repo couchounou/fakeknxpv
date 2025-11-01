@@ -315,7 +315,7 @@ async def send_power_data(
     global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index, json_status
 
     # Relais virtuel KNX : écoute sur 15/1/1, retour d’état sur 15/1/2
-    switch_last_action_time = datetime.now()
+
     def relay_listener(telegram):
         if telegram.destination_address == GroupAddress(json_status["switch"]["group_address"]) and isinstance(telegram.payload, GroupValueWrite):
             value = telegram.payload.value.value
@@ -431,10 +431,11 @@ async def send_power_data(
                 json_status["switch"]["last_action_time"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
+                print(f"last action time: {json_status['switch']['last_action_time']}, delay: {datetime.now() - timedelta(minutes=12)}")
                 if datetime.fromisoformat(json_status["switch"]["last_action_time"]) < datetime.now() - timedelta(minutes=12):
                     json_status["switch"]["state"] = not json_status["switch"]["state"]
                     json_status["switch"]["last_action_time"] = datetime.now().isoformat()
-                    knx_messages_log += f"Auto switch OFF after 1 hour to group={json_status['switch']['state_group_address']}\n"
+                    knx_messages_log += f"Change switch state to {json_status['switch']['state']}\n"
                     await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
 
                 # occupancy detection
@@ -445,7 +446,7 @@ async def send_power_data(
                     occupancy_state = True
                 json_status["occupancy"]["state"] = occupancy_state
                 update_history(json_status["history"]["occupancy"], occupancy_state)
-                knx_messages_log += f"Send PRESENCE {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
+                knx_messages_log += f"Set presence to {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
                 await send_occupancy_telegram(xknx, json_status["occupancy"]["group_address"], occupancy_state)
 
                 # volet status
