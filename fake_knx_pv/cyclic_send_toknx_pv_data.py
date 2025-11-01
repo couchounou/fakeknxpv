@@ -5,6 +5,7 @@ import os
 import asyncio
 import json
 from xknx import XKNX
+import random
 import logging
 from xknx.telegram import GroupAddress, Telegram
 from xknx.io import ConnectionConfig, ConnectionType, GatewayScanner
@@ -439,7 +440,11 @@ async def send_power_data(
                 knx_messages_log += f"Send PRESENCE {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
                 await send_occupancy_telegram(xknx, json_status["occupancy"]["group_address"], occupancy_state)
 
-
+                # volet status
+                now = datetime.now()
+                json_status["volet"]["position"] = 0 if now.hour < 7 or (now.hour == 7 and now.minute < 30) or now.hour >= 22 else random.randint(80, 100)
+                knx_messages_log += f"Volet position status: {json_status['volet']['position']}%\n"
+                await send_position_telegram(xknx, json_status['volet']['position_group_address'], json_status['volet']['position'])
 
                 # Send inj-sout data to KNX
                 knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
