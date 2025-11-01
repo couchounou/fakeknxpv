@@ -315,6 +315,7 @@ async def send_power_data(
     global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index, json_status
 
     # Relais virtuel KNX : écoute sur 15/1/1, retour d’état sur 15/1/2
+    switch_last_action_time = datetime.now()
     def relay_listener(telegram):
         if telegram.destination_address == GroupAddress(json_status["switch"]["group_address"]) and isinstance(telegram.payload, GroupValueWrite):
             value = telegram.payload.value.value
@@ -428,6 +429,13 @@ async def send_power_data(
                 json_status["meteo"]["clouds"]["value"] = myclouds * 100
                 json_status["updated"] = datetime.now().isoformat()
 
+
+                # switch state auto-off after 1 hour
+                if json_status["switch"]["state"]:  
+                    if switch_last_action_time < datetime.now() - timedelta(minutes=12):
+                        json_status["switch"]["state"] = False
+                        knx_messages_log += f"Auto switch OFF after 1 hour to group={json_status['switch']['state_group_address']}\n"
+                        await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
 
                 # occupancy detection
                 occupancy_state = False
