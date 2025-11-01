@@ -121,6 +121,10 @@
             border: 1px solid rgba(255, 255, 255, 0.02);
         }
 
+        .card-meteo {
+            grid-column: span 2;
+        }
+
         .card .head {
             display: flex;
             align-items: center;
@@ -295,9 +299,9 @@
         const fmt = v => (v === null || v === undefined) ? '—' : v;
         const fmtNum = (v, unit = '') => (v === null || v === undefined) ? '—' : (Number(v).toLocaleString() + (unit ? ' ' + unit : ''));
 
-        function createCard(title, innerHtml) {
+        function createCard(title, innerHtml, extraClass = '') {
             const div = document.createElement('div');
-            div.className = 'card';
+            div.className = `card ${extraClass}`;
             div.innerHTML = `<div class="head"><div class="name">${title}</div></div><div style="margin-top:10px">${innerHtml}</div>`;
             return div;
         }
@@ -334,12 +338,15 @@
                 return html;
             }
 
+
             // production / consommation / injection / soutirage
             grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
             grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
             grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
             grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
             grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
+
+
             // Card Puissance (Maison + PV)
             let powerHtml = '';
             if (data.household_power) {
@@ -362,6 +369,7 @@
                 grid.appendChild(createCard('⚡ Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
             }
 
+
             // switch (with interactive toggle)
             const sw = data.switch || {};
             const switchHtml = `
@@ -382,6 +390,7 @@
             `;
             grid.appendChild(createCard('Switch (ON/OFF)', switchHtml));
 
+
             // volet
             const v = data.volet || {};
             const pos = Number(v.position || 0);
@@ -394,25 +403,8 @@
             `;
             grid.appendChild(createCard('Volet (position)', voletHtml));
 
-            // meteo
-            const meteo = data.meteo || {};
-            const meteoHtml = `
-            <div class="row">
-            <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
-            <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
-            <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
-            <div class="kpi"><div class="small">☁️ Nuages</div><div class="value">${fmtNum(meteo.clouds?.value, '%')}</div><div class="sub">GA ${fmt(meteo.clouds?.group_address)}</div></div>
-            </div>`;
-            grid.appendChild(createCard('Météo', meteoHtml));
 
-            // misc
-            const miscHtml = `
-            <div class="pair">
-                <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
-                <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s<br>send cycle: ${fmt(data.send_cycle_s)}s</div>
-                <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
-            </div>
-            `;
+            // occupancy
             if (data.occupancy) {
                 const occState = data.occupancy.state ? 'Present' : 'Absent';
                 let barHtml = '';
@@ -445,7 +437,31 @@
                     </div>
                 `));
             }
+
+
+            // meteo
+            const meteo = data.meteo || {};
+            const meteoHtml = `
+            <div class="row">
+            <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
+            <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
+            <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+            <div class="kpi"><div class="small">☁️ Nuages</div><div class="value">${fmtNum(meteo.clouds?.value, '%')}</div><div class="sub">GA ${fmt(meteo.clouds?.group_address)}</div></div>
+            </div>`;
+            grid.appendChild(createCard('🌤️ Météo', meteoHtml, 'card-meteo'));
+
+
+            // misc
+            const miscHtml = `
+            <div class="pair">
+                <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
+                <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s<br>send cycle: ${fmt(data.send_cycle_s)}s</div>
+                <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
+            </div>
+            `;
             grid.appendChild(createCard('🖥️ Système', miscHtml));
+
+            
             // Card History (full width)
             const historyCard = document.createElement('div');
             historyCard.className = 'card card-history';
