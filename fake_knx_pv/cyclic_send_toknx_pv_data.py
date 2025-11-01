@@ -430,7 +430,7 @@ async def send_power_data(
 
                 # occupancy detection
                 occupancy_state = False
-                if conso_w < (household_power * 0.1):
+                if conso_w < (household_power * 0.08):
                     occupancy_state = False
                 else:
                     occupancy_state = True
