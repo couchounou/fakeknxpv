@@ -25,7 +25,7 @@ def chauffe_eau_profile(heure):
     chauffe_eau_puissance = 2500  # W
     start_periods = [22.5]  # 22h30
     # Ajout de la période de chauffe possible entre 12h et 15h
-    if 12 <= h < 15:
+    if 12 <= h < 14:
         start_periods.append(12)
     # Si on n'est pas en chauffe, vérifier si on entre dans une période
     if not _chauffe_eau_active:
