@@ -365,7 +365,7 @@ async def send_power_data(
             asyncio.create_task(send_position_telegram(xknx, json_status['volet']['position_group_address'], position))
 
     xknx.telegram_queue.register_telegram_received_cb(volet_position_listener)
-
+    json_status['switch']['last_action_time'] = datetime.now().isoformat()
 
     try:
         while True:
@@ -428,11 +428,10 @@ async def send_power_data(
                 json_status["meteo"]["humidity"]["value"] = humidity
                 json_status["meteo"]["clouds"]["value"] = myclouds * 100
                 json_status["updated"] = datetime.now().isoformat()
-                json_status["switch"]["last_action_time"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
                 print(f"last action time: {json_status['switch']['last_action_time']}, delay: {datetime.now() - timedelta(minutes=12)}")
-                if datetime.fromisoformat(json_status["switch"]["last_action_time"]) < datetime.now() - timedelta(minutes=12):
+                if datetime.fromisoformat(json_status["switch"]["last_action_time"]) < (datetime.now() - timedelta(minutes=12)):
                     json_status["switch"]["state"] = not json_status["switch"]["state"]
                     json_status["switch"]["last_action_time"] = datetime.now().isoformat()
                     knx_messages_log += f"Change switch state to {json_status['switch']['state']}\n"
