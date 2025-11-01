@@ -361,88 +361,89 @@
             if (powerHtml) {
                 grid.appendChild(createCard('⚡ Puissance Maison / PV', `<div class="pair">${powerHtml}</div>`));
             }
-            // meteo
-            const meteo = data.meteo || {};
-            const meteoHtml = `
-    <div class="row">
-      <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
-      <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
-      <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
-      <div class="kpi"><div class="small">☁️ Nuages</div><div class="value">${fmtNum(meteo.clouds?.value, '%')}</div><div class="sub">GA ${fmt(meteo.clouds?.group_address)}</div></div>
-    </div>`;
-            grid.appendChild(createCard('Météo', meteoHtml));
 
             // switch (with interactive toggle)
             const sw = data.switch || {};
             const switchHtml = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <div>
-        <div class="small">Adresse commande: ${fmt(sw.group_address)}</div>
-        <div class="small">Adresse état: ${fmt(sw.state_group_address)}</div>
-        <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
-        <div class="sub">Change d'état auto toutes les 12min.</div>
-      </div>
-      <div class="switch-ui">
-        <div id="toggleSwitch" class="toggle ${sw.state ? 'on' : ''}" role="button" title="Basculer">
-          <div class="knob"></div>
-        </div>
-      </div>
-    </div>
-    <div class="sub" style="margin-top:8px"></div>
-  `;
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div>
+                    <div class="small">Adresse commande: ${fmt(sw.group_address)}</div>
+                    <div class="small">Adresse état: ${fmt(sw.state_group_address)}</div>
+                    <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
+                    <div class="sub">Change d'état auto toutes les +/- 12min.</div>
+                </div>
+                <div class="switch-ui">
+                    <div id="toggleSwitch" class="toggle ${sw.state ? 'on' : ''}" role="button" title="Basculer">
+                    <div class="knob"></div>
+                    </div>
+                </div>
+                </div>
+                <div class="sub" style="margin-top:8px"></div>
+            `;
             grid.appendChild(createCard('Switch (ON/OFF)', switchHtml));
 
             // volet
             const v = data.volet || {};
             const pos = Number(v.position || 0);
             const voletHtml = `
-    <div class="small">GA position: ${fmt(v.position_group_address)}</div>
-    <div style="margin-top:8px" class="posbar"><i style="width:${Math.max(0, Math.min(100, pos))}%"></i></div>
-    <div class="sub" style="margin-top:8px">Position: <strong id="voletPos">${pos}</strong>%</div>
-    <div class="sub">GAs: up/down ${fmt(v.up_down_group_address)} • stop ${fmt(v.stop_group_address)} • setpos ${fmt(v.setposition_group_address)}</div>
-    <div class="sub">Position a 0% entre 22H et 7H30 sinon rnd(80,100)</div>
-  `;
+                <div class="small">GA position: ${fmt(v.position_group_address)}</div>
+                <div style="margin-top:8px" class="posbar"><i style="width:${Math.max(0, Math.min(100, pos))}%"></i></div>
+                <div class="sub" style="margin-top:8px">Position: <strong id="voletPos">${pos}</strong>%</div>
+                <div class="sub">GAs: up/down ${fmt(v.up_down_group_address)} • stop ${fmt(v.stop_group_address)} • setpos ${fmt(v.setposition_group_address)}</div>
+                <div class="sub">Position a 0% entre 22H et 7H30 sinon rnd(80,100)</div>
+            `;
             grid.appendChild(createCard('Volet (position)', voletHtml));
 
-            // misc: gateway + cycles
+            // meteo
+            const meteo = data.meteo || {};
+            const meteoHtml = `
+            <div class="row">
+            <div class="kpi"><div class="small">🌡️ Temp</div><div class="value">${fmtNum(meteo.temperature?.value, '°C')}</div><div class="sub">GA ${fmt(meteo.temperature?.group_address)}</div></div>
+            <div class="kpi"><div class="small">💧 Humidity</div><div class="value">${fmtNum(meteo.humidity?.value, '%')}</div><div class="sub">GA ${fmt(meteo.humidity?.group_address)}</div></div>
+            <div class="kpi"><div class="small">🌬️ Pressure</div><div class="value">${fmtNum(meteo.pressure?.value, 'hPa')}</div><div class="sub">GA ${fmt(meteo.pressure?.group_address)}</div></div>
+            <div class="kpi"><div class="small">☁️ Nuages</div><div class="value">${fmtNum(meteo.clouds?.value, '%')}</div><div class="sub">GA ${fmt(meteo.clouds?.group_address)}</div></div>
+            </div>`;
+            grid.appendChild(createCard('Météo', meteoHtml));
+
+            // misc
             const miscHtml = `
-  <div class="pair">
-    <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
-    <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s<br>send cycle: ${fmt(data.send_cycle_s)}s</div>
-    <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
-  </div>
-`;
+            <div class="pair">
+                <div class="chip">Gateway IP: ${fmt(data.gateway)}<br>MY IP: ${fmt(data.ipaddress)}</div>
+                <div class="chip">save cycle: ${fmt(data.save_cycle_s)}s<br>send cycle: ${fmt(data.send_cycle_s)}s</div>
+                <div class="chip">Localisation: ${fmt(data.latitude)}, ${fmt(data.longitude)}</div>
+            </div>
+            `;
             if (data.occupancy) {
                 const occState = data.occupancy.state ? 'Present' : 'Absent';
                 let barHtml = '';
                 if (data.history?.occupancy && data.history.occupancy.length > 0) {
                     const occArr = data.history.occupancy.slice(-48);
                     barHtml = `
-      <div style="display:flex;gap:2px;height:18px;margin-top:10px;">
-        ${occArr.map(pt => `
-          <div title="${pt.value ? 'Présent' : 'Absent'}\n${new Date(pt.timestamp).toLocaleString('fr-FR')}" style="
-            flex:1;
-            height:100%;
-            background:${pt.value ? '#16a34a' : '#334155'};
-            border-radius:2px;
-            cursor:pointer;
-          "></div>
-        `).join('')}
-      </div>
-      <div class="sub" style="margin-top:4px">
-        <span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;margin-right:4px;vertical-align:middle"></span> Présent
-        <span style="display:inline-block;width:14px;height:14px;background:#334155;border-radius:3px;margin-left:12px;margin-right:4px;vertical-align:middle"></span> Absent
-      </div>
-    `;
+                    <div style="display:flex;gap:2px;height:18px;margin-top:10px;">
+                        ${occArr.map(pt => `
+                        <div title="${pt.value ? 'Présent' : 'Absent'}\n${new Date(pt.timestamp).toLocaleString('fr-FR')}" style="
+                            flex:1;
+                            height:100%;
+                            background:${pt.value ? '#16a34a' : '#334155'};
+                            border-radius:2px;
+                            cursor:pointer;
+                        "></div>
+                        `).join('')}
+                    </div>
+                    <div class="sub" style="margin-top:4px">
+                        <span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;margin-right:4px;vertical-align:middle"></span> Présent
+                        <span style="display:inline-block;width:14px;height:14px;background:#334155;border-radius:3px;margin-left:12px;margin-right:4px;vertical-align:middle"></span> Absent
+                    </div>
+                    `;
                 }
                 grid.appendChild(createCard('🚶 Présence', `
-    <div class="kpi">
-      <div class="big">${occState}</div>
-      <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
-      <div class="sub">Présence si conso W > 10% puissance totale </div>
-      ${barHtml}
-    </div>
-  `));
+                    <div class="kpi">
+                    <div class="big">${occState}</div>
+                    <div class="sub">GA: ${fmt(data.occupancy.group_address)}</div>
+                    <div class="sub">Présence si conso W > 10% puissance totale </div>
+                    ${barHtml}
+                    </div>
+                `));
             }
             grid.appendChild(createCard('🖥️ Système', miscHtml));
             // Card History (full width)
