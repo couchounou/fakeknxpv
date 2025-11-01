@@ -379,6 +379,7 @@
                     <div class="small">Adresse état: ${fmt(sw.state_group_address)}</div>
                     <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
                     <div class="sub">Change d'état auto toutes les +/- 12min.</div>
+                    <div class="sub">Dernier changement ${new Date(sw.last_action_time).toLocaleString('fr-FR')}</div>
                 </div>
                 <div class="switch-ui">
                     <div id="toggleSwitch" class="toggle ${sw.state ? 'on' : ''}" role="button" title="Basculer">
@@ -400,6 +401,7 @@
                 <div class="sub" style="margin-top:8px">Position: <strong id="voletPos">${pos}</strong>%</div>
                 <div class="sub">GAs: up/down ${fmt(v.up_down_group_address)} • stop ${fmt(v.stop_group_address)} • setpos ${fmt(v.setposition_group_address)}</div>
                 <div class="sub">Position a 0% entre 22H et 7H30 sinon rnd(80,100)</div>
+                <div class="sub">Dernier changement ${new Date(v.last_action_time).toLocaleString('fr-FR')}</div>
             `;
             grid.appendChild(createCard('Volet (position)', voletHtml));
 

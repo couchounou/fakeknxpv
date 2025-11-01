@@ -428,12 +428,13 @@ async def send_power_data(
                 json_status["meteo"]["humidity"]["value"] = humidity
                 json_status["meteo"]["clouds"]["value"] = myclouds * 100
                 json_status["updated"] = datetime.now().isoformat()
-
+                json_status["switch"]["last_action_time"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
-                if json_status["switch"]["state"]:  
-                    if switch_last_action_time < datetime.now() - timedelta(minutes=12):
-                        json_status["switch"]["state"] = False
+                if json_status["switch"]["state"]: 
+                    if json_status["switch"]["last_action_time"] < datetime.now() - timedelta(minutes=12):
+                        json_status["switch"]["state"] = not json_status["switch"]["state"]
+                        json_status["switch"]["last_action_time"] = datetime.now().isoformat()
                         knx_messages_log += f"Auto switch OFF after 1 hour to group={json_status['switch']['state_group_address']}\n"
                         await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
 
@@ -450,6 +451,7 @@ async def send_power_data(
 
                 # volet status
                 now = datetime.now()
+                json_status["volet"]["last_action_time"] = datetime.now().isoformat()
                 json_status["volet"]["position"] = 0 if now.hour < 7 or (now.hour == 7 and now.minute < 30) or now.hour >= 22 else random.randint(80, 100)
                 knx_messages_log += f"Volet position status: {json_status['volet']['position']}%\n"
                 await send_position_telegram(xknx, json_status['volet']['position_group_address'], json_status['volet']['position'])
