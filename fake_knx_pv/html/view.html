@@ -579,7 +579,6 @@
                 const response = await fetch(window.location.origin + '/data.json');
                 if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
                 const data = await response.json();
-
                 // on appelle la fonction principale de rendu
                 render(data);
             } catch (err) {
