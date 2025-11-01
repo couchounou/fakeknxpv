@@ -10,3 +10,4 @@ fake_knx_pv/cyclic_send_toknx_pv_data.log
 __pycache__\
 fake_knx_pv/pv_data/__pycache__/get_pv_data.cpython-311.pyc
 *.pyc
+*.json

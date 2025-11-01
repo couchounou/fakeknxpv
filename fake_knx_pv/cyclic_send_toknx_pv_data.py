@@ -21,6 +21,7 @@ from xknx.dpt import (
     DPTOccupancy
 )
 
+
 import threading
 from xknx.telegram.apci import GroupValueWrite
 from datetime import datetime
@@ -128,7 +129,8 @@ json_status={
     "history": {
         "production": [],
         "injection": [],
-        "soutirage": []
+        "soutirage": [],
+        "occupancy": []
     }
 }
 
@@ -144,39 +146,22 @@ knx_messages_log = ""
 # create config dir if not exists
 # else use local path
 
-inj_index_file_path = "/boot/firmware/index_inject.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_inject.txt")
-sout_index_file_path = "/boot/firmware/index_sout.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_sout.txt")
-conso_index_file_path = "/boot/firmware/index_conso.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_conso.txt")
-prod_index_file_path = "/boot/firmware/index_prod.txt" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "index_prod.txt")
+index_file_path = "/boot/firmware/indexes.json" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "indexes.json")
+history_file_path = "/boot/firmware/history.json" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "history.json")
 config_file = "/boot/firmware/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
-print(f"Using files: \n {inj_index_file_path}\n {sout_index_file_path}\n {conso_index_file_path}\n {prod_index_file_path}\n {config_file=}")
+print(f"Using files: \n {index_file_path}\n {history_file_path}\n {config_file=}")
 
 # create index files if not exists and read values
-if os.path.exists(inj_index_file_path):
-    with open(inj_index_file_path, "r", encoding="UTF-8") as myfile:
-        inj_index = float(myfile.read() or "0")
-else:
-    with open(inj_index_file_path, "w", encoding="UTF-8") as myfile:
-        myfile.write("0.0")
-if os.path.exists(sout_index_file_path):
-    with open(sout_index_file_path, "r", encoding="UTF-8") as myfile:
-        sout_index = float(myfile.read() or "0")
-else:
-    with open(sout_index_file_path, "w", encoding="UTF-8") as myfile:
-        myfile.write("0.0")
-if os.path.exists(conso_index_file_path):
-    with open(conso_index_file_path, "r", encoding="UTF-8") as myfile:
-        conso_index = float(myfile.read() or "0")
-else:
-    with open(conso_index_file_path, "w", encoding="UTF-8") as myfile:
-        myfile.write("0.0")
-if os.path.exists(prod_index_file_path):
-    with open(prod_index_file_path, "r", encoding="UTF-8") as myfile:
-        prod_index = float(myfile.read() or "0")
-else:
-    with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
-        myfile.write("0.0")
-
+if os.path.exists(history_file_path):
+    with open(history_file_path, "r", encoding="UTF-8") as myfile:
+        json_status['history'] = json.loads(myfile.read()) or {}
+if os.path.exists(index_file_path):
+    with open(index_file_path, "r", encoding="UTF-8") as myfile:
+        data = json.load(myfile)
+        sout_index = data.get('sout_index', 0.0)
+        conso_index = data.get('conso_index', 0.0)
+        prod_index = data.get('prod_index', 0.0)
+        inj_index = data.get('inj_index', 0.0)
 
 def update_history(history_list, value, max_hours=48):
     now = datetime.now().isoformat()
@@ -194,15 +179,16 @@ def encode_dpt16(text: str) -> bytes:
 
 def save_indexes(save_cycle_s):
     if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
-        with open(inj_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write(str(inj_index))
-        with open(sout_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write(str(sout_index))
-        with open(conso_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write(str(conso_index))
-        with open(prod_index_file_path, "w", encoding="UTF-8") as myfile:
-            myfile.write(str(prod_index))
-        print("Indexes saved to files.")
+        with open(history_file_path, "w", encoding="UTF-8") as myfile:
+            json.dump(json_status["history"], myfile, ensure_ascii=False)
+        with open(index_file_path, "w", encoding="UTF-8") as myfile:
+            obj = {
+                "inj_index": inj_index,
+                "sout_index": sout_index,
+                "conso_index": conso_index,
+                "prod_index": prod_index
+            }
+            json.dump(obj, myfile, ensure_ascii=False)
         logging.info("Indexes saved to files.")
         try:
             publish_upnp_service(get_local_ip(), 8080)
@@ -278,9 +264,9 @@ async def send_switch_telegram(xknx, relay_state, group_address):
     await send_telegram(xknx, group_address, dpt)
 
 
-async def send_occupancy_telegram(xknx, relay_state, group_address):
-    print(f"Sending occupancy state update to {group_address}: {relay_state}")
-    dpt = DPTOccupancy.to_knx(relay_state)
+async def send_occupancy_telegram(xknx, state, group_address):
+    print(f"Sending occupancy state update to {group_address}: {state}")
+    dpt = DPTBinary(1) if state else DPTBinary(0)
     await send_telegram(xknx, group_address, dpt)
 
 
@@ -449,8 +435,11 @@ async def send_power_data(
                 else:
                     occupancy_state = True
                 json_status["occupancy"]["state"] = occupancy_state
+                update_history(json_status["history"]["occupancy"], occupancy_state)
                 knx_messages_log += f"Send PRESENCE {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
                 await send_occupancy_telegram(xknx, json_status["occupancy"]["group_address"], occupancy_state)
+
+
 
                 # Send inj-sout data to KNX
                 knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
