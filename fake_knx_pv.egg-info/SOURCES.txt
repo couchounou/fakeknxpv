@@ -4,12 +4,9 @@ pyproject.toml
 setup.py
 fake_knx_pv/VERSION
 fake_knx_pv/cyclic_send_toknx_pv_data.cfg
-fake_knx_pv/cyclic_send_toknx_pv_data.log
 fake_knx_pv/cyclic_send_toknx_pv_data.py
-fake_knx_pv/index_conso.txt
-fake_knx_pv/index_inject.txt
-fake_knx_pv/index_prod.txt
-fake_knx_pv/index_sout.txt
+fake_knx_pv/history.json
+fake_knx_pv/indexes.json
 fake_knx_pv.egg-info/PKG-INFO
 fake_knx_pv.egg-info/SOURCES.txt
 fake_knx_pv.egg-info/dependency_links.txt
