@@ -1,12 +1,17 @@
-import http.server
+
 from datetime import timedelta
+import random
+from datetime import datetime
+import configparser
+import socket
+import logging
 import socketserver
 import os
 import asyncio
 import json
+import threading
+import http.server
 from xknx import XKNX
-import random
-import logging
 from xknx.telegram import GroupAddress, Telegram
 from xknx.io import ConnectionConfig, ConnectionType, GatewayScanner
 from xknx.dpt import (
@@ -18,21 +23,14 @@ from xknx.dpt import (
     DPTSwitch,
     DPTScaling,
     DPTBinary,
-    DPTArray,
-    DPTOccupancy
+    DPTVolume,
+    DPTVolumeFlux
 )
-
-
-import threading
 from xknx.telegram.apci import GroupValueWrite
-from datetime import datetime
 from pv_data import get_pv_data
 from conso_data import get_conso_data
 from meteo_data import get_meteo_data
-import configparser
-import socket
 from devices import volet
-import socket
 
 
 def get_local_ip():
@@ -49,7 +47,6 @@ def get_local_ip():
 
 
 def publish_upnp_service(ip, port=8080):
-    import socket
     ssdp_message = (
         "NOTIFY * HTTP/1.1\r\n"
         "HOST: 239.255.255.250:1900\r\n"
@@ -66,9 +63,10 @@ def publish_upnp_service(ip, port=8080):
     sock.sendto(ssdp_message.encode("utf-8"), ("239.255.255.250", 1900))
     sock.close()
 
-def run_simple_http_server(text="", port=80):
-    global json_status
+
+def run_simple_http_server(port=80):
     import textwrap
+
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/description.xml":
@@ -97,48 +95,87 @@ def run_simple_http_server(text="", port=80):
                 self.send_response(200)
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps(json_status).encode("utf-8"))
+                self.wfile.write(json.dumps(jstatus).encode("utf-8"))
             else:
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
                 self.end_headers()
                 html = os.path.join(basepath, "html", "view.html")
-                with open(html, "r", encoding="utf-8") as myfile:
-                    self.wfile.write(myfile.read().encode("utf-8"))
+                with open(html, "r", encoding="utf-8") as my_file:
+                    self.wfile.write(my_file.read().encode("utf-8"))
 
     with socketserver.TCPServer(("", port), Handler) as httpd:
         print(f"Serving HTTP on port {port}...")
         httpd.serve_forever()
 
-json_status={
+
+jstatus = {
     "version": "0.4.0",
     "updated": "",
-    "inj_sout": {"W": {},},
-    "injection": {"W": {}, "Wh": {}},
-    "soutirage": {"W": {}, "Wh": {}},
-    "consommation": {"W": {}, "Wh": {}},
-    "production": {"W": {}, "Wh": {}},
+    "inj_sout": {
+        "W": {"group_address": "", "value": 0},
+    },
+    "injection": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
+    "soutirage": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
+    "consommation": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
+    "production": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
+    "eau": {
+        "index": {"group_address": "", "value": 0},
+        "debit": {"group_address": "", "value": 0}
+    },
     "meteo": {
         "temperature": {},
         "humidity": {},
         "pressure": {},
         "clouds": {}
     },
-    "switch": {"group_address": "", "state_group_address": "", "state": False},
-    "volet": {"up_down_group_address": "", "stop_group_address": "", "setposition_group_address": "", "position_group_address": ""},
-    "occupancy": {"group_address": "", "state_group_address": "", "state": False},
+    "switch": {
+        "group_address": "",
+        "state_group_address": "",
+        "state": False
+    },
+    "volet": {
+        "up_down_group_address": "",
+        "stop_group_address": "",
+        "setposition_group_address": "",
+        "position_group_address": ""
+        },
+    "occupancy": {
+        "group_address": "",
+        "state_group_address": "",
+        "state": False
+    },
     "history": {
         "production": [],
         "injection": [],
         "soutirage": [],
-        "occupancy": []
-    }
+        "occupancy": [],
+        "switch": []
+    },
+    "gateway": {
+        "ip": "",
+        "port": 3671
+    },
+    "send_cycle_s": 300,
+    "save_cycle_s": 3600
+
 }
 
 volet = volet()
 
 last_updated_timestamp = last_saved_timestamp = datetime.now().timestamp()
-inj_index = sout_index = conso_index = prod_index = 0.0
 basepath = os.path.abspath(os.path.dirname(__file__))
 knx_messages_log = ""
 
@@ -147,22 +184,39 @@ knx_messages_log = ""
 # create config dir if not exists
 # else use local path
 
-index_file_path = "/boot/firmware/indexes.json" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "indexes.json")
-history_file_path = "/boot/firmware/history.json" if os.path.exists("/boot/firmware/") else os.path.join(basepath, "history.json")
-config_file = "/boot/firmware/cyclic_send_toknx_pv_data.cfg" if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg") else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
-print(f"Using files: \n {index_file_path}\n {history_file_path}\n {config_file=}")
+index_file_path = (
+    "/boot/firmware/indexes.json"
+    if os.path.exists("/boot/firmware/")
+    else os.path.join(basepath, "indexes.json")
+)
+history_file_path = (
+    "/boot/firmware/history.json"
+    if os.path.exists("/boot/firmware/")
+    else os.path.join(basepath, "history.json")
+)
+config_file = (
+    "/boot/firmware/cyclic_send_toknx_pv_data.cfg"
+    if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg")
+    else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
+)
+print(
+    f"Using files: \n {index_file_path}\n {history_file_path}\n {config_file=}"
+)
 
 # create index files if not exists and read values
 if os.path.exists(history_file_path):
     with open(history_file_path, "r", encoding="UTF-8") as myfile:
-        json_status['history'] = json.loads(myfile.read()) or {}
+        jstatus['history'] = json.loads(myfile.read()) or {}
+
 if os.path.exists(index_file_path):
     with open(index_file_path, "r", encoding="UTF-8") as myfile:
         data = json.load(myfile)
-        sout_index = data.get('sout_index', 0.0)
-        conso_index = data.get('conso_index', 0.0)
-        prod_index = data.get('prod_index', 0.0)
-        inj_index = data.get('inj_index', 0.0)
+        jstatus["soutirage"]["Wh"]["value"] = data.get('sout_index', 0.0)
+        jstatus["consommation"]["Wh"]["value"] = data.get('conso_index', 0.0)
+        jstatus["production"]["Wh"]["value"] = data.get('prod_index', 0.0)
+        jstatus["injection"]["Wh"]["value"] = data.get('inj_index', 0.0)
+        jstatus["eau"]["index"]["value"] = data.get('eau_index', 0.0)
+
 
 def update_history(history_list, value, max_hours=48):
     now = datetime.now().isoformat()
@@ -174,23 +228,26 @@ def update_history(history_list, value, max_hours=48):
 
 
 def encode_dpt16(text: str) -> bytes:
-    data = text.encode("latin-1")[:14]
-    return data.ljust(14, b'\x00') 
+    my_data = text.encode("latin-1")[:14]
+    return my_data.ljust(14, b'\x00')
 
 
 def save_indexes(save_cycle_s):
+    logging.info("try Saving indexes to files...")
     if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
-        with open(history_file_path, "w", encoding="UTF-8") as myfile:
-            json.dump(json_status["history"], myfile, ensure_ascii=False)
-        with open(index_file_path, "w", encoding="UTF-8") as myfile:
+        with open(history_file_path, "w", encoding="UTF-8") as my_file:
+            logging.info("  Saving indexes to files...")
+            json.dump(jstatus["history"], my_file, ensure_ascii=False)
+        with open(index_file_path, "w", encoding="UTF-8") as my_file:
             obj = {
-                "inj_index": inj_index,
-                "sout_index": sout_index,
-                "conso_index": conso_index,
-                "prod_index": prod_index
+                "inj_index": jstatus["injection"]["Wh"]["value"],
+                "sout_index": jstatus["soutirage"]["Wh"]["value"],
+                "conso_index": jstatus["consommation"]["Wh"]["value"],
+                "prod_index": jstatus["production"]["Wh"]["value"],
+                "eau_index": jstatus["eau"]["index"]["value"]
             }
-            json.dump(obj, myfile, ensure_ascii=False)
-        logging.info("Indexes saved to files.")
+            json.dump(obj, my_file, ensure_ascii=False)
+            logging.info("  Saving indexes to files...")
         try:
             publish_upnp_service(get_local_ip(), 8080)
         except Exception as e:
@@ -237,6 +294,24 @@ async def send_energy_telegram(
     await send_telegram(xknx, group_address, dpt)
 
 
+async def send_flux_telegram(
+    xknx,
+    group_address,
+    value
+):
+    dpt = DPTVolumeFlux.to_knx(value)
+    await send_telegram(xknx, group_address, dpt)
+
+
+async def send_volume_telegram(
+    xknx,
+    group_address,
+    value
+):
+    dpt = DPTVolume.to_knx(value)
+    await send_telegram(xknx, group_address, dpt)
+
+
 async def send_position_telegram(
     xknx,
     group_address,
@@ -248,7 +323,7 @@ async def send_position_telegram(
 
 async def send_telegram(
     xknx,
-    group_address,  
+    group_address,
     dpt
 ):
     await xknx.telegrams.put(
@@ -271,65 +346,51 @@ async def send_occupancy_telegram(xknx, state, group_address):
     await send_telegram(xknx, group_address, dpt)
 
 
-async def send_power_data(
-    delay,
-    gateway_ip,
-    gateway_port,
-    inj_sout_power_address,
-    conso_power_address,
-    conso_energy_address,
-    prod_power_address,
-    prod_energy_address,
-    inj_power_address,
-    inj_energy_address,
-    sout_power_address,
-    sout_energy_address,
-    pressure_address,
-    temperature_address,
-    humidity_address,
-    longitude,
-    latitude,
-    household_power,
-    panel_power,
-    weather_api_key=None,
-    save_cycle_s=3600
-):
-    print(
-        f"Start cyclic send to knxip {gateway_ip}:{gateway_port}"
-        f" {prod_power_address=}, {prod_energy_address=}, {inj_power_address=}," 
-        f" {inj_energy_address=}, {sout_power_address=}, {sout_energy_address=}"
-    )
+async def send_cyclic_data(global_obj):
 
     # Configuration XKNX
     connection_config = ConnectionConfig(
         connection_type=ConnectionType.TUNNELING,
-        gateway_ip=gateway_ip,
-        gateway_port=gateway_port,
+        gateway_ip=global_obj["gateway"]["ip"],
+        gateway_port=global_obj["gateway"]["port"],
     )
-    print(f"XKNX connecting to {gateway_ip}:{gateway_port}")
+    print(f"XKNX connecting to {global_obj['gateway']['ip']}:{global_obj['gateway']['port']}")
     xknx = XKNX(connection_config=connection_config)
     print("XKNX starting...")
     await xknx.start()
     print("XKNX started")
 
-    global last_updated_timestamp, last_saved_timestamp, inj_index, sout_index, conso_index, prod_index, json_status
-
-    # Relais virtuel KNX : écoute sur 15/1/1, retour d’état sur 15/1/2
+    global last_updated_timestamp, last_saved_timestamp
 
     def relay_listener(telegram):
-        if telegram.destination_address == GroupAddress(json_status["switch"]["group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+        if (
+            telegram.destination_address == GroupAddress(global_obj["switch"]["group_address"]) and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
             value = telegram.payload.value.value
-            print(f"Relay command received value: {value}") 
+            print(f"Relay command received value: {value}")
             switch_state = bool(value)
-            json_status["switch"]["state"] = switch_state
-            print(f"Switch state changed to {switch_state}, sending update to {json_status['switch']['state_group_address']}")
-            asyncio.create_task(send_switch_telegram(xknx, switch_state, json_status['switch']['state_group_address']))
+            global_obj["switch"]["state"] = switch_state
+            print(
+                f"Switch state changed to {switch_state}, "
+                f"sending update to {global_obj['switch']['state_group_address']}"
+            )
+            asyncio.create_task(
+                send_switch_telegram(
+                    xknx,
+                    switch_state,
+                    global_obj['switch']['state_group_address']
+                )
+            )
 
     # Ajoute le listener à xknx
     xknx.telegram_queue.register_telegram_received_cb(relay_listener)
 
     def volet_up_down_listener(telegram):
-        if telegram.destination_address == GroupAddress(json_status["volet"]["up_down_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+        if (
+            telegram.destination_address == GroupAddress(global_obj["volet"]["up_down_group_address"]) and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
             knx_value = telegram.payload.value.value
             print(f"Volet up/down command received value: {knx_value}")
             if int(knx_value) == 0:
@@ -342,52 +403,75 @@ async def send_power_data(
     xknx.telegram_queue.register_telegram_received_cb(volet_up_down_listener)
 
     def volet_stop_listener(telegram):
-        if telegram.destination_address == GroupAddress(json_status["volet"]["stop_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+        if (
+            telegram.destination_address == GroupAddress(global_obj["volet"]["stop_group_address"]) and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
             print("Volet stop command received")
             volet.stop()
             position = volet.get_position()
             print(f"Volet position statusd: {position}%")
-            json_status["volet"]["position"] = position
-            print(f"Volet position changed to {position}%, sending update to {json_status['volet']['position_group_address']}")
-            asyncio.create_task(send_position_telegram(xknx, json_status['volet']['position_group_address'], position))
+            global_obj["volet"]["position"] = position
+            print(
+                f"Volet position changed to {position}%, " 
+                f"sending update to {global_obj['volet']['position_group_address']}"
+            )
+            asyncio.create_task(
+                send_position_telegram(
+                    xknx,
+                    global_obj['volet']['position_group_address'],
+                    position
+                )
+            )
 
     xknx.telegram_queue.register_telegram_received_cb(volet_stop_listener)
 
     def volet_position_listener(telegram):
-        if telegram.destination_address == GroupAddress(json_status["volet"]["setposition_group_address"]) and isinstance(telegram.payload, GroupValueWrite):
+        if (
+            telegram.destination_address == GroupAddress(global_obj["volet"]["setposition_group_address"]) and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
             raw = telegram.payload.value.value
             position = int(raw[0] * 100 / 255)
             print(f"Volet position command received: {position}%")
             volet.set_position(position)
-            json_status["volet"]["position"] = position
-            print(f"Volet position changed to {position}%, sending update to {json_status['volet']['position_group_address']}")
+            global_obj["volet"]["position"] = position
+            print(
+                f"Volet position changed to {position}%, "
+                f"sending update to {global_obj['volet']['position_group_address']}"
+            )
             # Envoie la position réelle du volet encodée en DPTScaling
-            asyncio.create_task(send_position_telegram(xknx, json_status['volet']['position_group_address'], position))
+            asyncio.create_task(
+                send_position_telegram(
+                    xknx,
+                    global_obj['volet']['position_group_address'],
+                    position
+                )
+            )
 
     xknx.telegram_queue.register_telegram_received_cb(volet_position_listener)
-    json_status['switch']['last_action_time'] = datetime.now().isoformat()
+    global_obj['switch']['last_action_time'] = datetime.now().isoformat()
 
     try:
         while True:
-
             knx_messages_log = ""  # Reset log at each loop
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
-                    lat=latitude,
-                    lon=longitude,
-                    api_key=weather_api_key
+                    lat=global_obj.get("latitude", 48.8566),
+                    lon=global_obj.get("longitude", 2.3522),
+                    api_key=global_obj.get("weather_api_key")
                 )
 
                 production_W, production_wh, _, _ = get_pv_data.get_pv_data(
-                    latitude=latitude,
-                    longitude=longitude,
-                    power=panel_power,
+                    latitude=global_obj.get("latitude", 48.8566),
+                    longitude=global_obj.get("longitude", 2.3522),
+                    power=global_obj.get("panel_power", 4000),
                     updated_timestamp=last_updated_timestamp,
                     myclouds=myclouds
                 )
 
                 conso_w, conso_wh = get_conso_data.get_conso_data(
-                    power=household_power,
+                    power=global_obj.get("household_power", 0),
                     updated_timestamp=last_updated_timestamp
                 )
 
@@ -398,195 +482,275 @@ async def send_power_data(
                 )
                 myclouds = 0.8 if myclouds is None else myclouds
                 last_updated_timestamp = datetime.now().timestamp()
-                inj_index += inj_wh
-                sout_index += sout_wh
-                conso_index += conso_wh
-                prod_index += production_wh
+                global_obj["injection"]["Wh"]["value"] += inj_wh
+                global_obj["soutirage"]["Wh"]["value"] += sout_wh
+                global_obj["consommation"]["Wh"]["value"] += conso_wh
+                global_obj["production"]["Wh"]["value"] += production_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
-                knx_messages_log += f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
-                knx_messages_log += f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
-                knx_messages_log += f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
-                knx_messages_log += f"Meteo: clouds={myclouds  *100}%, temp={temperature}C, humidity={humidity}%, pressure={pressure}hPa\n"
-                
-                # Update history
-                update_history(json_status["history"]["production"], int(production_W))
-                update_history(json_status["history"]["injection"], int(-inj_w))
-                update_history(json_status["history"]["soutirage"], int(sout_w))
-                
+                knx_messages_log += (
+                    f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
+                )
+                knx_messages_log += (
+                    f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
+                )
+                knx_messages_log += (
+                    f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), "
+                    f"Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
+                )
+                knx_messages_log += (
+                    f"Meteo: clouds={myclouds * 100}%, temp={temperature}C, "
+                    f"humidity={humidity}%, pressure={pressure}hPa\n"
+                )
 
-                json_status["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
-                json_status["production"]["W"]["value"] = int(production_W)
-                json_status["production"]["Wh"]["value"] = int(prod_index)
-                json_status["consommation"]["W"]["value"] = int(conso_w)
-                json_status["consommation"]["Wh"]["value"] = int(conso_index)
-                json_status["injection"]["Wh"]["value"] = int(inj_index)
-                json_status["injection"]["W"]["value"] = int(abs(inj_w))
-                json_status["soutirage"]["Wh"]["value"] = int(sout_index)
-                json_status["soutirage"]["W"]["value"] = int(sout_w)
-                json_status["meteo"]["pressure"]["value"] = pressure
-                json_status["meteo"]["temperature"]["value"] = temperature
-                json_status["meteo"]["humidity"]["value"] = humidity
-                json_status["meteo"]["clouds"]["value"] = myclouds * 100
-                json_status["updated"] = datetime.now().isoformat()
+                # Update history
+                update_history(global_obj["history"]["production"], int(production_W))
+                update_history(global_obj["history"]["injection"], int(-inj_w))
+                update_history(global_obj["history"]["soutirage"], int(sout_w))
+
+                global_obj["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
+                global_obj["production"]["W"]["value"] = int(production_W)
+                global_obj["consommation"]["W"]["value"] = int(conso_w)
+                global_obj["injection"]["W"]["value"] = int(abs(inj_w))
+                global_obj["soutirage"]["W"]["value"] = int(sout_w)
+                global_obj["meteo"]["pressure"]["value"] = pressure
+                global_obj["meteo"]["temperature"]["value"] = temperature
+                global_obj["meteo"]["humidity"]["value"] = humidity
+                global_obj["meteo"]["clouds"]["value"] = myclouds * 100
+                global_obj["updated"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
-                print(f"last action time: {json_status['switch']['last_action_time']}, delay: {datetime.now() - timedelta(minutes=12)}")
-                if datetime.fromisoformat(json_status["switch"]["last_action_time"]) < (datetime.now() - timedelta(minutes=12)):
-                    json_status["switch"]["state"] = not json_status["switch"]["state"]
-                    json_status["switch"]["last_action_time"] = datetime.now().isoformat()
-                    knx_messages_log += f"Change switch state to {json_status['switch']['state']}\n"
-                    await send_switch_telegram(xknx, False, json_status['switch']['state_group_address'])
+                print(
+                    f"last action time: {global_obj['switch']['last_action_time']}, "
+                    f"delay: {datetime.now() - timedelta(minutes=12)}"
+                )
+                if datetime.fromisoformat(global_obj["switch"]["last_action_time"]) < (
+                    datetime.now() - timedelta(minutes=12)
+                ):
+                    global_obj["switch"]["state"] = not global_obj["switch"]["state"]
+                    global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
+                    knx_messages_log += (
+                        f"Change switch state to {global_obj['switch']['state']}\n"
+                    )
+                    await send_switch_telegram(
+                        xknx, False, global_obj['switch']['state_group_address']
+                    )
+                update_history(global_obj["history"]["switch"], int(global_obj["switch"]["state"]))
 
                 # occupancy detection
                 occupancy_state = False
-                if conso_w < (household_power * 0.05):
+                if conso_w < (global_obj["household_power"] * 0.05):
                     occupancy_state = False
                 else:
                     occupancy_state = True
-                json_status["occupancy"]["state"] = occupancy_state
-                update_history(json_status["history"]["occupancy"], occupancy_state)
-                knx_messages_log += f"Set presence to {occupancy_state} to group={json_status['occupancy']['group_address']}\n"
-                await send_occupancy_telegram(xknx, json_status["occupancy"]["group_address"], occupancy_state)
+                global_obj["occupancy"]["state"] = occupancy_state
+                update_history(global_obj["history"]["occupancy"], occupancy_state)
+                knx_messages_log += (
+                    f"Set presence to {occupancy_state} to group="
+                    f"{global_obj['occupancy']['group_address']}\n"
+                )
+                await send_occupancy_telegram(
+                    xknx, global_obj["occupancy"]["group_address"], occupancy_state
+                )
 
                 # volet status
                 now = datetime.now()
-                json_status["volet"]["last_action_time"] = datetime.now().isoformat()
-                json_status["volet"]["position"] = 0 if now.hour < 7 or (now.hour == 7 and now.minute < 30) or now.hour >= 22 else random.randint(80, 100)
-                knx_messages_log += f"Volet position status: {json_status['volet']['position']}%\n"
-                await send_position_telegram(xknx, json_status['volet']['position_group_address'], json_status['volet']['position'])
+                global_obj["volet"]["last_action_time"] = datetime.now().isoformat()
+                global_obj["volet"]["position"] = (
+                    0 if now.hour < 7 or (now.hour == 7 and now.minute < 30) or now.hour >= 22
+                    else random.randint(80, 100)
+                )
+                knx_messages_log += (
+                    f"Volet position status: {global_obj['volet']['position']}%\n"
+                )
+                await send_position_telegram(
+                    xknx, global_obj['volet']['position_group_address'],
+                    global_obj['volet']['position']
+                )
+
+                # Send water meter data to KNX
+                debit, volume = get_conso_data.get_water_meter_m3()
+                global_obj["eau"]["debit"]["value"] = round(debit, 6)
+                global_obj["eau"]["index"]["value"] += round(volume, 3)
+                knx_messages_log += (
+                    f"Send EAU index {global_obj['eau']['index']['value']}m3 to group="
+                    f"{global_obj['eau']['index']['group_address']} and "
+                    f"debit {global_obj['eau']['debit']['value']}m3/h to group="
+                    f"{global_obj['eau']['debit']['group_address']}\n"
+                )
+                await send_volume_telegram(
+                    xknx,
+                    global_obj['eau']['index']['group_address'],
+                    global_obj["eau"]["index"]["value"]
+                )
+                await send_flux_telegram(
+                    xknx,
+                    global_obj['eau']['debit']['group_address'],
+                    global_obj["eau"]["debit"]["value"]
+                )
 
                 # Send inj-sout data to KNX
-                knx_messages_log += f"Send INJ-SOUT {int(inj_sout_power)}W to group={inj_sout_power_address}\n"
-                await send_power_telegram(xknx, inj_sout_power_address, inj_sout_power)
+                knx_messages_log += (
+                    f"Send INJ-SOUT {int(inj_sout_power)}W to group="
+                    f"{global_obj['inj_sout']['W']['group_address']}\n"
+                )
+                await send_power_telegram(
+                    xknx, global_obj["inj_sout"]["W"]["group_address"], inj_sout_power
+                )
 
                 # Send prod data to KNX
-                knx_messages_log += f"Send PROD {int(production_W)}W to group={prod_power_address} and {int(prod_index)}Wh to group={prod_energy_address}\n"
-                await send_energy_telegram(xknx, prod_energy_address, prod_index)
-                await send_power_telegram(xknx, prod_power_address, production_W)
+                knx_messages_log += (
+                    f"Send PROD {int(production_W)}W to group="
+                    f"{global_obj['production']['W']['group_address']} and "
+                    f"{int(global_obj['production']['Wh']['value'])}Wh to group="
+                    f"{global_obj['production']['Wh']['group_address']}\n"
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['production']['Wh']['group_address'],
+                    global_obj["production"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['production']['W']['group_address'],
+                    production_W
+                )
 
                 # Send conso data to KNX
-                knx_messages_log += f"Send CONSO {int(conso_w)}W to group={conso_power_address} and {int(conso_index)}Wh to group={conso_energy_address}\n"
-                await send_energy_telegram(xknx, conso_energy_address, conso_index)
-                await send_power_telegram(xknx, conso_power_address, conso_w)
+                knx_messages_log += (
+                    f"Send CONSO {int(conso_w)}W to group="
+                    f"{global_obj['consommation']['W']['group_address']} and "
+                    f"{int(global_obj['consommation']['Wh']['value'])}Wh to group="
+                    f"{global_obj['consommation']['Wh']['group_address']}\n"
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['consommation']['Wh']['group_address'],
+                    global_obj["consommation"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['consommation']['W']['group_address'],
+                    conso_w
+                )
 
                 # Send injection data to KNX
-                knx_messages_log += f"Send INJ {int(inj_w)}W to group={inj_power_address} and {int(inj_index)}Wh to group={inj_energy_address}\n"
-                await send_energy_telegram(xknx, inj_energy_address, inj_index)
-                await send_power_telegram(xknx, inj_power_address, inj_w)
+                knx_messages_log += (
+                    f"Send INJ {int(inj_w)}W to group="
+                    f"{global_obj['injection']['W']['group_address']} and "
+                    f"{int(global_obj['injection']['Wh']['value'])}Wh to group="
+                    f"{global_obj['injection']['Wh']['group_address']}\n"
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['injection']['Wh']['group_address'],
+                    global_obj["injection"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['injection']['W']['group_address'],
+                    inj_w
+                )
 
                 # Send soutirage data to KNX
-                knx_messages_log += f"Send SOUT {int(sout_w)}W to group={sout_power_address} and {int(sout_index)}Wh to group={sout_energy_address}\n"
-                await send_energy_telegram(xknx, sout_energy_address, sout_index)
-                await send_power_telegram(xknx, sout_power_address, sout_w)
+                knx_messages_log += (
+                    f"Send SOUT {int(sout_w)}W to group="
+                    f"{global_obj['soutirage']['W']['group_address']} and "
+                    f"{int(global_obj['soutirage']['Wh']['value'])}Wh to group="
+                    f"{global_obj['soutirage']['Wh']['group_address']}\n"
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['soutirage']['Wh']['group_address'],
+                    global_obj["soutirage"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['soutirage']['W']['group_address'],
+                    sout_w
+                )
 
                 # Send meteo data to log
-                knx_messages_log += f"Send METEO pressure={pressure}hPa to group={pressure_address}, temperature={temperature}C to group={temperature_address}, humidity={humidity}% to group={humidity_address}\n"
+                knx_messages_log += (
+                    f"Send METEO pressure={pressure}hPa to group="
+                    f"{global_obj['meteo']['pressure']}, temperature={temperature}C to group="
+                    f"{global_obj['meteo']['temperature']}, humidity={humidity}% to group="
+                    f"{global_obj['meteo']['humidity']}\n"
+                )
                 if pressure:
                     telegram = Telegram(
-                        destination_address=GroupAddress(pressure_address),
+                        destination_address=GroupAddress(global_obj["meteo"]["pressure"]),
                         payload=GroupValueWrite(DPTPressure2Byte.to_knx(int(pressure * 100))),
                     )
                     await xknx.telegrams.put(telegram)
                 if temperature:
                     telegram = Telegram(
-                        destination_address=GroupAddress(temperature_address),
+                        destination_address=GroupAddress(global_obj["meteo"]["temperature"]),
                         payload=GroupValueWrite(DPTTemperature.to_knx(float(temperature))),
                     )
                     await xknx.telegrams.put(telegram)
                 if humidity:
                     telegram = Telegram(
-                        destination_address=GroupAddress(humidity_address),
+                        destination_address=GroupAddress(global_obj["meteo"]["humidity"]),
                         payload=GroupValueWrite(DPTHumidity.to_knx(int(humidity))),
                     )
                     await xknx.telegrams.put(telegram)
 
-                last_saved_timestamp = save_indexes(save_cycle_s) or last_saved_timestamp
+                last_saved_timestamp = save_indexes(global_obj["save_cycle_s"]) or last_saved_timestamp
                 print(knx_messages_log)
                 logging.info(knx_messages_log)
             except Exception as e:
-                logging.info(f"Error in main loop: {e}")
-            await asyncio.sleep(delay)
+                logging.info("Error in main loop: %s", e)
+            await asyncio.sleep(global_obj["send_cycle_s"])
     except Exception as e:
         logging.info(e)
     finally:
         await xknx.stop()
 
 
-def load_config():
-    global json_status
+def load_config(global_obj, config_file):
     print(f"Loading config from {config_file}")
     config = configparser.ConfigParser()
     if not os.path.exists(config_file):
         raise FileNotFoundError(f"Config file {config_file} not found")
     config.read(config_file)
     print(f"Config sections: {config.sections()}")
-    # --- CONFIG section ---
-    lon = config.getfloat("CONFIG", "lon")
-    lat = config.getfloat("CONFIG", "lat")
-    panel_power = config.getint("CONFIG", "panel_power")
-    household_power = config.getint("CONFIG", "household_power")
+    global_obj["gateway"]["ip"] = config.get("KNX", "gateway_ip")
+    global_obj["gateway"]["port"] = config.getint("KNX", "gateway_port", fallback=3671)
+    global_obj["save_cycle_s"] = config.getint("KNX", "save_cycle_s", fallback=3600)
+    global_obj["send_cycle_s"] = config.getint("KNX", "send_cycle_s", fallback=300)
+    global_obj["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group", fallback="6/1/14")
+    global_obj["production"]["W"]["group_address"] = config.get("KNX", "prod_power_group", fallback="6/1/11")
+    global_obj["production"]["Wh"]["group_address"] = config.get("KNX", "prod_energy_group", fallback="6/2/11")
+    global_obj["consommation"]["W"]["group_address"] = config.get("KNX", "conso_power_group", fallback="6/1/10")
+    global_obj["consommation"]["Wh"]["group_address"] = config.get("KNX", "conso_energy_group", fallback="6/2/10")
+    global_obj["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group", fallback="6/2/12")
+    global_obj["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group", fallback="6/1/12")
+    global_obj["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group", fallback="6/2/13")
+    global_obj["soutirage"]["W"]["group_address"] = config.get("KNX", "sout_power_group", fallback="6/1/13")
+    global_obj["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group", fallback="6/3/10")
+    global_obj["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group", fallback="6/3/12")
+    global_obj["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group", fallback="6/3/11")
+    global_obj["switch"]["group_address"] = config.get("KNX", "switch_group", fallback="7/1/1")
+    global_obj["switch"]["state_group_address"] = config.get("KNX", "switch_state_group", fallback="7/1/2")
+    global_obj["volet"]["up_down_group_address"] = config.get("KNX", "volet_up_down_group_address", fallback="7/1/3")
+    global_obj["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
+    global_obj["volet"]["setposition_group_address"] = config.get(
+        "KNX",
+        "volet_setposition_group_address",
+        fallback="7/1/5"
+    )
+    global_obj["volet"]["position_group_address"] = config.get("KNX", "volet_position_group_address", fallback="7/1/6")
+    global_obj["occupancy"]["group_address"] = config.get("KNX", "occupancy_group", fallback="8/1/1")
+    global_obj["eau"]["index"]["group_address"] = config.get("KNX", "eau_index_group", fallback="9/1/1")
+    global_obj["eau"]["debit"]["group_address"] = config.get("KNX", "eau_debit_group", fallback="9/1/2")
+    global_obj["updated"] = datetime.now().isoformat()
+    global_obj["longitude"] = config.getfloat("CONFIG", "lon")
+    global_obj["latitude"] = config.getfloat("CONFIG", "lat")
+    global_obj["panel_power"] = config.getint("CONFIG", "panel_power")
+    global_obj["household_power"] = config.getint("CONFIG", "household_power")
+    global_obj["ipaddress"] = get_local_ip()
+    global_obj["weather_api_key"] = config.get("OPENWEATHERMAP", "api_key", fallback=None)
 
-    # --- KNX section ---
-    knx = {
-        "gateway_ip": config.get("KNX", "gateway_ip"),
-        "gateway_port": config.getint("KNX", "gateway_port"),
-        "send_cycle_s": config.getint("KNX", "send_cycle_s"),
-        "save_cycle_s": config.getint("KNX", "save_cycle_s"),
-        "inj_sout_power_group": config.get("KNX", "inj_sout_power_group"),
-        "conso_power_group": config.get("KNX", "conso_power_group"),
-        "conso_energy_group": config.get("KNX", "conso_energy_group"),
-        "prod_power_group": config.get("KNX", "prod_power_group"),
-        "prod_energy_group": config.get("KNX", "prod_energy_group"),
-        "inj_energy_group": config.get("KNX", "inj_energy_group"),
-        "inj_power_group": config.get("KNX", "inj_power_group"),
-        "sout_energy_group": config.get("KNX", "sout_energy_group"),
-        "sout_power_group": config.get("KNX", "sout_power_group"),
-        "pressure_group": config.get("KNX", "pressure_group"),
-        "temperature_group": config.get("KNX", "temperature_group"),
-        "humidity_group": config.get("KNX", "humidity_group"),
-        "switch_group": config.get("KNX", "switch_group", fallback="7/1/1"),
-        "switch_state_group": config.get("KNX", "switch_state_group", fallback="7/1/2"),
-        "volet_up_down_group_address": config.get("KNX", "volet_up_down_group_address", fallback="7/1/3"),
-        "volet_stop_group_address": config.get("KNX", "volet_stop_group_address", fallback="7/1/4"),
-        "volet_setposition_group_address": config.get("KNX", "volet_setposition_group_address", fallback="7/1/5"),
-        "volet_position_group_address": config.get("KNX", "volet_position_group_address", fallback="7/1/6")
-    }
-
-    json_status["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group")
-    json_status["production"]["W"]["group_address"] = config.get("KNX", "prod_power_group")
-    json_status["production"]["Wh"]["group_address"] = config.get("KNX", "prod_energy_group")
-    json_status["consommation"]["W"]["group_address"] = config.get("KNX", "conso_power_group")
-    json_status["consommation"]["Wh"]["group_address"] = config.get("KNX", "conso_energy_group")
-    json_status["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group")
-    json_status["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group")
-    json_status["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group")
-    json_status["soutirage"]["W"]["group_address"] = config.get("KNX", "sout_power_group")
-    json_status["meteo"]["pressure"]["group_address"] = config.get("KNX", "pressure_group")
-    json_status["meteo"]["temperature"]["group_address"] = config.get("KNX", "temperature_group")
-    json_status["meteo"]["humidity"]["group_address"] = config.get("KNX", "humidity_group")
-    json_status["switch"]["group_address"] = config.get("KNX", "switch_group", fallback="7/1/1")
-    json_status["switch"]["state_group_address"] = config.get("KNX", "switch_state_group", fallback="7/1/2")
-    json_status["volet"]["up_down_group_address"] = config.get("KNX", "volet_up_down_group_address", fallback="7/1/3")
-    json_status["volet"]["stop_group_address"] = config.get("KNX", "volet_stop_group_address", fallback="7/1/4")
-    json_status["volet"]["setposition_group_address"] = config.get("KNX", "volet_setposition_group_address", fallback="7/1/5")
-    json_status["volet"]["position_group_address"] = config.get("KNX", "volet_position_group_address", fallback="7/1/6")
-    json_status["occupancy"]["group_address"] = config.get("KNX", "occupancy_group", fallback="8/1/1")
-    json_status["updated"] = datetime.now().isoformat()
-    json_status["longitude"] = lon
-    json_status["latitude"] = lat
-    json_status["panel_power"] = panel_power
-    json_status["household_power"] = household_power
-    json_status["ipaddress"] = get_local_ip()
-
-    # You can return a dict, a namedtuple, or just print for now
-    return {
-        "lon": lon,
-        "lat": lat,
-        "panel_power": panel_power,
-        "household_power": household_power,
-        "knx": knx,
-        "weather": {"api_key": config.get("OPENWEATHERMAP", "api_key", fallback=None)},
-    }
 
 async def scan() -> None:
     """Search for available KNX/IP devices with GatewayScanner and print out result if a device was found."""
@@ -614,10 +778,11 @@ async def scan() -> None:
         )
         print(f"  Routing: {routing}")
     if not gatewayscanner.found_gateways:
-        print("⚠ No Gateways found\n")    
+        print("⚠ No Gateways found\n")
+
 
 if __name__ == "__main__":
-    conf = load_config()
+    load_config(jstatus, config_file)
     logging.basicConfig(
         filename="cyclic_send_toknx_pv_data.log",
         filemode="a",
@@ -625,43 +790,21 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
     )
-    threading.Thread(target=run_simple_http_server, args=("SimuPV device is online", 8080), daemon=True).start()
-    # asyncio.run(scan())  
+    threading.Thread(
+        target=run_simple_http_server,
+        args=(8080,),
+        daemon=True
+    ).start()
     version_file = os.path.join(os.path.dirname(__file__), "VERSION")
     if os.path.exists(version_file):
         with open(version_file, "r", encoding="UTF-8") as myfile:
-            json_status["version"] = myfile.read().strip()
+            jstatus["version"] = myfile.read().strip()
     else:
-        json_status["version"] = "Unknown"
-    json_status["gateway"] = str(conf["knx"]["gateway_ip"]) + ":" + str(conf["knx"]["gateway_port"])
-    json_status["save_cycle_s"] = conf["knx"]["save_cycle_s"]
-    json_status["send_cycle_s"] = conf["knx"]["send_cycle_s"]
+        jstatus["version"] = "Unknown"
     try:
         publish_upnp_service(get_local_ip(), 8080)
     except Exception as e:
         print(f"Error publishing UPnP service: {e}")
     asyncio.run(
-        send_power_data(
-            inj_sout_power_address=conf["knx"]["inj_sout_power_group"],
-            gateway_ip=conf["knx"]["gateway_ip"],
-            gateway_port=conf["knx"]["gateway_port"],
-            conso_power_address=conf["knx"]["conso_power_group"],
-            conso_energy_address=conf["knx"]["conso_energy_group"],
-            prod_power_address=conf["knx"]["prod_power_group"],
-            prod_energy_address=conf["knx"]["prod_energy_group"],
-            inj_power_address=conf["knx"]["inj_power_group"],
-            inj_energy_address=conf["knx"]["inj_energy_group"],
-            sout_power_address=conf["knx"]["sout_power_group"],
-            sout_energy_address=conf["knx"]["sout_energy_group"],
-            pressure_address=conf["knx"]["pressure_group"],
-            temperature_address=conf["knx"]["temperature_group"],
-            humidity_address=conf["knx"]["humidity_group"],
-            longitude=conf["lon"],
-            latitude=conf["lat"],
-            household_power=conf["household_power"],
-            panel_power=conf["panel_power"],
-            delay=conf["knx"]["send_cycle_s"],
-            weather_api_key=conf["weather"]["api_key"],
-            save_cycle_s=conf["knx"]["save_cycle_s"],
-        )
+        send_cyclic_data(jstatus)
     )

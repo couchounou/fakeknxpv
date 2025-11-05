@@ -346,6 +346,27 @@
             grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
             grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
 
+            // Card capteur d'eau (m³/s et m³)
+            if (data.eau) {
+                const waterObj = {
+                    "Débit (m³/s)": { value: data.eau.debit.value, group_address: data.eau.debit.group_address },
+                    "Volume (m³)": { value: data.eau.index.value, group_address: data.eau.index.group_address }
+                };
+                grid.appendChild(createCard('💧 Capteur d\'eau', `
+                    <div class="pair">
+                        <div class="kpi" style="min-width:110px">
+                            <div class="small">Débit (m³/s)</div>
+                            <div class="big">${data.eau.debit.value} m³/s</div>
+                            <div class="sub">GA: ${fmt(data.eau.debit.group_address)}</div>
+                        </div>
+                        <div class="kpi" style="min-width:110px">
+                            <div class="small">Volume (m³)</div>
+                            <div class="big">${fmtNum(data.eau.index.value, 'm³')}</div>
+                            <div class="sub">GA: ${fmt(data.eau.index.group_address)}</div>
+                        </div>
+                    </div>
+                `));
+            }
 
             // Card Puissance (Maison + PV)
             let powerHtml = '';
@@ -371,6 +392,30 @@
 
 
             // switch (with interactive toggle)
+            let swbarHtml = '';
+            if (data.switch) {
+                const swState = data.switch.state ? 'ON' : 'OFF';
+                if (data.history?.switch && data.history.switch.length > 0) {
+                    const swArr = data.history.switch.slice(-48);
+                    swbarHtml = `
+                    <div style="display:flex;gap:2px;height:18px;margin-top:10px;">
+                        ${swArr.map(pt => `
+                        <div title="${pt.value ? 'Présent' : 'Absent'}\n${new Date(pt.timestamp).toLocaleString('fr-FR')}" style="
+                            flex:1;
+                            height:100%;
+                            background:${pt.value ? '#16a34a' : '#334155'};
+                            border-radius:2px;
+                            cursor:pointer;
+                        "></div>
+                        `).join('')}
+                    </div>
+                    <div class="sub" style="margin-top:4px">
+                        <span style="display:inline-block;width:14px;height:14px;background:#16a34a;border-radius:3px;margin-right:4px;vertical-align:middle"></span> Présent
+                        <span style="display:inline-block;width:14px;height:14px;background:#334155;border-radius:3px;margin-left:12px;margin-right:4px;vertical-align:middle"></span> Absent
+                    </div>
+                    `;
+                }
+            }
             const sw = data.switch || {};
             const switchHtml = `
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -380,6 +425,7 @@
                     <div class="sub" style="margin-top:8px">Etat actuel: <strong id="switchStateText">${sw.state ? 'ON' : 'OFF'}</strong></div>
                     <div class="sub">Change d'état auto toutes les +/- 12min.</div>
                     <div class="sub">Dernier changement ${new Date(sw.last_action_time).toLocaleString('fr-FR')}</div>
+                    ${swbarHtml || ''}
                 </div>
                 <div class="switch-ui">
                     <div id="toggleSwitch" class="toggle ${sw.state ? 'on' : ''}" role="button" title="Basculer">

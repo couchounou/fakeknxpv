@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 import math
 import random
@@ -34,13 +33,15 @@ def chauffe_eau_profile(heure):
                 # On démarre une nouvelle chauffe
                 duration_heater = random.uniform(0.75, 3)  # heures (45min à 180min)
                 _chauffe_eau_start = h
-                _chauffe_eau_end = (start_heater + duration_heater) % 24 if start_heater + duration_heater > 24 else start_heater + duration_heater
+                _chauffe_eau_end = (start_heater + duration_heater) % 24 \
+                    if start_heater + duration_heater > 24 else start_heater + duration_heater
                 _chauffe_eau_active = True
                 break
     # Si chauffe en cours
     if _chauffe_eau_active:
         # Cas normal (pas de chevauchement minuit)
-        if _chauffe_eau_start <= h < _chauffe_eau_end if _chauffe_eau_start < _chauffe_eau_end else (h >= _chauffe_eau_start or h < _chauffe_eau_end):
+        if (_chauffe_eau_start <= h < _chauffe_eau_end if _chauffe_eau_start < _chauffe_eau_end
+                else (h >= _chauffe_eau_start or h < _chauffe_eau_end)):
             bruit = random.uniform(-150, 150)
             return chauffe_eau_puissance + bruit
         else:
@@ -56,7 +57,7 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     delta = datetime.now().timestamp() - updated_timestamp
     p = round(profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000), 2)
     e = p * delta / 3600
-    logging.info(f"Conso power {p}W, energie:{e}Wh diff index:{e}Wh")
+    logging.info("Conso power %sW, energie:%sWh diff index:%sWh", p, e, e)
     return p, e
 
 
@@ -100,5 +101,25 @@ def profil_maison(heure, jour_semaine, pmax=6):
     return float(puissance * 1000)
 
 
-if __name__ == "__main__":
-    print(get_conso_data())
+_last_water_call = None
+_total_water_volume = 0.0
+
+
+def get_water_meter_m3():
+    """
+    À chaque appel, retourne le débit instantané (m³/s, max 4L/min)
+    et le volume total écoulé (m³).
+    """
+    global _last_water_call, _total_water_volume
+    now = datetime.now().timestamp()
+    # Débit simulé (aléatoire, max 4 L/min)
+    debit_l_min = random.uniform(0, 4)
+    debit_m3_s = debit_l_min / 1000 / 60  # conversion L/min -> m³/s
+    # Calcul du volume écoulé depuis le dernier appel
+    if _last_water_call is not None:
+        delta_min = (now - _last_water_call) / 60.0
+        volume_m3 = debit_l_min * delta_min / 1000  # conversion L -> m³
+        _total_water_volume += volume_m3
+    _last_water_call = now
+    logging.info("Débit: %s m3/s, Volume: %s m3", debit_m3_s, _total_water_volume)
+    return round(debit_m3_s, 6), round(_total_water_volume, 3)

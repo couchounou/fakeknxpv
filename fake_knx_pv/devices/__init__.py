@@ -1,2 +1,1 @@
 from .devices import volet
-
