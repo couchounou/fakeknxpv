@@ -519,7 +519,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["meteo"]["humidity"]["value"] = humidity
                 global_obj["meteo"]["clouds"]["value"] = myclouds * 100
                 global_obj["updated"] = datetime.now().isoformat()
-
+                logging.info("Updated global_obj timestamp to %s", global_obj["updated"])
                 # switch state auto-off after 1 hour
                 logging.info(
                     "Switch last action time: %s, delay: %s",
