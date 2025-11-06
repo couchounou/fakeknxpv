@@ -542,7 +542,11 @@ async def send_cyclic_data(global_obj):
                     await send_switch_telegram(
                         xknx, False, global_obj["switch"]["state_group_address"]
                     )
-                update_history(global_obj["history"]["switch"], int(global_obj["switch"]["state"]))
+                logging.info(
+                    "Switch state is %s",
+                    global_obj["switch"].get("state", False)
+                )
+                update_history(global_obj["history"]["switch"], int(global_obj["switch"].get("state", False)))
 
                 # occupancy detection
                 occupancy_state = False
