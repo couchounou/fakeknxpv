@@ -529,7 +529,7 @@ async def send_cyclic_data(global_obj):
                 if datetime.fromisoformat(global_obj["switch"].get("last_action_time", datetime.now().isoformat())) < (
                     datetime.now() - timedelta(minutes=12)
                 ):
-                    global_obj["switch"]["state"] = not global_obj["switch"]["state"]
+                    global_obj["switch"]["state"] = not global_obj["switch"].get("state", False)
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
                     logging.info(
                         "Change switch state to %s",
