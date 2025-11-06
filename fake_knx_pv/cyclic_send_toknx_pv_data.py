@@ -521,11 +521,12 @@ async def send_cyclic_data(global_obj):
                 global_obj["updated"] = datetime.now().isoformat()
 
                 # switch state auto-off after 1 hour
-                print(
-                    f"last action time: {global_obj['switch']['last_action_time']}, "
-                    f"delay: {datetime.now() - timedelta(minutes=12)}"
+                logging.info(
+                    "Switch last action time: %s, delay: %s",
+                    global_obj["switch"].get("last_action_time"),
+                    datetime.now() - timedelta(minutes=12)
                 )
-                if datetime.fromisoformat(global_obj["switch"]["last_action_time"]) < (
+                if datetime.fromisoformat(global_obj["switch"].get("last_action_time", datetime.now().isoformat())) < (
                     datetime.now() - timedelta(minutes=12)
                 ):
                     global_obj["switch"]["state"] = not global_obj["switch"]["state"]
