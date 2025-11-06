@@ -488,18 +488,20 @@ async def send_cyclic_data(global_obj):
                 global_obj["production"]["Wh"]["value"] += production_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
                 logging.info(
-                    f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
+                    "Simu prod:  %.2fW(%.2fWh)\n",
+                    round(production_W, 2), round(production_wh, 2)
                 )
                 logging.info(
-                    f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
+                    "Simu conso: %.2fW(%.2fWh)\n",
+                    round(conso_w, 2), round(conso_wh, 2)
                 )
                 logging.info(
-                    f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), "
-                    f"Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
+                    "Simu Injection: %.2fW(%.2fWh), Soutirage: %.2fW - %.2fWh\n",
+                    round(inj_w, 2), round(inj_wh, 2), round(sout_w, 2), round(sout_wh, 2)
                 )
                 logging.info(
-                    f"Meteo: clouds={myclouds * 100}%, temp={temperature}C, "
-                    f"humidity={humidity}%, pressure={pressure}hPa\n"
+                    "Meteo: clouds=%s%%, temp=%sC, humidity=%s%%, pressure=%shPa\n",
+                    myclouds * 100, temperature, humidity, pressure
                 )
 
                 # Update history
@@ -529,7 +531,8 @@ async def send_cyclic_data(global_obj):
                     global_obj["switch"]["state"] = not global_obj["switch"]["state"]
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
                     logging.info(
-                        f"Change switch state to {global_obj['switch']['state']}\n"
+                        "Change switch state to %s\n",
+                        global_obj['switch']['state']
                     )
                     await send_switch_telegram(
                         xknx, False, global_obj['switch']['state_group_address']
@@ -545,8 +548,9 @@ async def send_cyclic_data(global_obj):
                 global_obj["occupancy"]["state"] = occupancy_state
                 update_history(global_obj["history"]["occupancy"], occupancy_state)
                 logging.info(
-                    f"Set presence to {occupancy_state} to group="
-                    f"{global_obj['occupancy']['group_address']}\n"
+                    "Set presence to %s to group=%s\n",
+                    occupancy_state,
+                    global_obj['occupancy']['group_address']
                 )
                 await send_occupancy_telegram(
                     xknx, global_obj["occupancy"]["group_address"], occupancy_state
@@ -560,7 +564,8 @@ async def send_cyclic_data(global_obj):
                     else random.randint(80, 100)
                 )
                 logging.info(
-                    f"Volet position status: {global_obj['volet']['position']}%\n"
+                    "Volet position status: %d",
+                    global_obj['volet']['position']
                 )
                 await send_position_telegram(
                     xknx, global_obj['volet']['position_group_address'],
@@ -572,10 +577,11 @@ async def send_cyclic_data(global_obj):
                 global_obj["eau"]["debit"]["value"] = round(debit, 6)
                 global_obj["eau"]["index"]["value"] += round(volume, 3)
                 logging.info(
-                    f"Send EAU index {global_obj['eau']['index']['value']}m3 to group="
-                    f"{global_obj['eau']['index']['group_address']} and "
-                    f"debit {global_obj['eau']['debit']['value']}m3/h to group="
-                    f"{global_obj['eau']['debit']['group_address']}\n"
+                    "Send EAU index %sm3 to group=%s and debit %sm3/h to group=%s",
+                    global_obj['eau'].get('index', {}).get('value', 0),
+                    global_obj['eau'].get('index', {}).get('group_address', ''),
+                    global_obj['eau'].get('debit', {}).get('value', 0),
+                    global_obj['eau'].get('debit', {}).get('group_address', '')
                 )
                 await send_volume_telegram(
                     xknx,
@@ -590,8 +596,9 @@ async def send_cyclic_data(global_obj):
 
                 # Send inj-sout data to KNX
                 logging.info(
-                    f"Send INJ-SOUT {int(inj_sout_power)}W to group="
-                    f"{global_obj['inj_sout']['W']['group_address']}\n"
+                    "Send INJ-SOUT %dW to group=%s",
+                    int(inj_sout_power),
+                    global_obj['inj_sout']['W']['group_address']
                 )
                 await send_power_telegram(
                     xknx, global_obj["inj_sout"]["W"]["group_address"], inj_sout_power
@@ -599,10 +606,11 @@ async def send_cyclic_data(global_obj):
 
                 # Send prod data to KNX
                 logging.info(
-                    f"Send PROD {int(production_W)}W to group="
-                    f"{global_obj['production']['W']['group_address']} and "
-                    f"{int(global_obj['production']['Wh']['value'])}Wh to group="
-                    f"{global_obj['production']['Wh']['group_address']}\n"
+                    "Send PROD %dW to group=%s and %dWh to group=%s",
+                    int(production_W),
+                    global_obj['production']['W']['group_address'],
+                    int(global_obj['production']['Wh']['value']),
+                    global_obj['production']['Wh']['group_address']
                 )
                 await send_energy_telegram(
                     xknx,
@@ -617,10 +625,11 @@ async def send_cyclic_data(global_obj):
 
                 # Send conso data to KNX
                 logging.info(
-                    f"Send CONSO {int(conso_w)}W to group="
-                    f"{global_obj['consommation']['W']['group_address']} and "
-                    f"{int(global_obj['consommation']['Wh']['value'])}Wh to group="
-                    f"{global_obj['consommation']['Wh']['group_address']}\n"
+                    "Send CONSO %dW to group=%s and %dWh to group=%s",
+                    int(conso_w),
+                    global_obj['consommation']['W']['group_address'],
+                    int(global_obj['consommation']['Wh']['value']),
+                    global_obj['consommation']['Wh']['group_address']
                 )
                 await send_energy_telegram(
                     xknx,
@@ -635,10 +644,11 @@ async def send_cyclic_data(global_obj):
 
                 # Send injection data to KNX
                 logging.info(
-                    f"Send INJ {int(inj_w)}W to group="
-                    f"{global_obj['injection']['W']['group_address']} and "
-                    f"{int(global_obj['injection']['Wh']['value'])}Wh to group="
-                    f"{global_obj['injection']['Wh']['group_address']}\n"
+                    "Send INJ %dW to group=%s and %dWh to group=%s",
+                    int(inj_w),
+                    global_obj['injection']['W']['group_address'],
+                    int(global_obj['injection']['Wh']['value']),
+                    global_obj['injection']['Wh']['group_address']
                 )
                 await send_energy_telegram(
                     xknx,
@@ -653,10 +663,11 @@ async def send_cyclic_data(global_obj):
 
                 # Send soutirage data to KNX
                 logging.info(
-                    f"Send SOUT {int(sout_w)}W to group="
-                    f"{global_obj['soutirage']['W']['group_address']} and "
-                    f"{int(global_obj['soutirage']['Wh']['value'])}Wh to group="
-                    f"{global_obj['soutirage']['Wh']['group_address']}\n"
+                    "Send SOUT %dW to group=%s and %dWh to group=%s",
+                    int(sout_w),
+                    global_obj['soutirage']['W']['group_address'],
+                    int(global_obj['soutirage']['Wh']['value']),
+                    global_obj['soutirage']['Wh']['group_address']
                 )
                 await send_energy_telegram(
                     xknx,
@@ -671,10 +682,13 @@ async def send_cyclic_data(global_obj):
 
                 # Send meteo data to log
                 logging.info(
-                    f"Send METEO pressure={pressure}hPa to group="
-                    f"{global_obj['meteo']['pressure']['group_address']}, temperature={temperature}C to group="
-                    f"{global_obj['meteo']['temperature']['group_address']}, humidity={humidity}% to group="
-                    f"{global_obj['meteo']['humidity']['group_address']}\n"
+                    "Send METEO pressure=%shPa to group=%s, temperature=%sC to group=%s, humidity=%s%% to group=%s",
+                    pressure,
+                    global_obj['meteo']['pressure']['group_address'],
+                    temperature,
+                    global_obj['meteo']['temperature']['group_address'],
+                    humidity,
+                    global_obj['meteo']['humidity']['group_address']
                 )
                 if pressure:
                     telegram = Telegram(
@@ -719,6 +733,8 @@ def load_config(global_obj, config_file):
     global_obj["save_cycle_s"] = config.getint("KNX", "save_cycle_s", fallback=3600)
     global_obj["send_cycle_s"] = config.getint("KNX", "send_cycle_s", fallback=300)
     global_obj["inj_sout"]["W"]["group_address"] = config.get("KNX", "inj_sout_power_group", fallback="6/1/14")
+    if not global_obj["inj_sout"]["W"]["group_address"]:
+        global_obj["inj_sout"]["W"]["group_address"] = "6/1/14"
     global_obj["production"]["W"]["group_address"] = config.get("KNX", "prod_power_group", fallback="6/1/11")
     global_obj["production"]["Wh"]["group_address"] = config.get("KNX", "prod_energy_group", fallback="6/2/11")
     global_obj["consommation"]["W"]["group_address"] = config.get("KNX", "conso_power_group", fallback="6/1/10")
