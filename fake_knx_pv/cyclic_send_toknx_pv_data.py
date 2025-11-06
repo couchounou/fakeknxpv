@@ -272,7 +272,7 @@ def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.n
     else:
         sout_power = abs(inj)
         diff_sout_index = energy
-
+    logging.info("Inj power %sW diff inj_index:%sWh, Sout power:%sW diff sout_index:%sWh", inj_power, diff_inj_index, sout_power, diff_sout_index)
     return inj_power, diff_inj_index, sout_power, diff_sout_index
 
 
@@ -454,7 +454,6 @@ async def send_cyclic_data(global_obj):
 
     try:
         while True:
-            knx_messages_log = ""  # Reset log at each loop
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
                     lat=global_obj.get("latitude", 48.8566),
@@ -480,6 +479,7 @@ async def send_cyclic_data(global_obj):
                     production_W,
                     updated_timestamp=last_updated_timestamp
                 )
+
                 myclouds = 0.8 if myclouds is None else myclouds
                 last_updated_timestamp = datetime.now().timestamp()
                 global_obj["injection"]["Wh"]["value"] += inj_wh
@@ -487,17 +487,17 @@ async def send_cyclic_data(global_obj):
                 global_obj["consommation"]["Wh"]["value"] += conso_wh
                 global_obj["production"]["Wh"]["value"] += production_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
-                knx_messages_log += (
+                logging.info(
                     f"Simu prod:  {round(production_W, 2)}W({round(production_wh, 2)}Wh)\n"
                 )
-                knx_messages_log += (
+                logging.info(
                     f"Simu conso: {round(conso_w, 2)}W({round(conso_wh, 2)}Wh)\n"
                 )
-                knx_messages_log += (
+                logging.info(
                     f"Simu Injection: {round(inj_w, 2)}W({round(inj_wh, 2)}Wh), "
                     f"Soutirage: {round(sout_w, 2)}W - {round(sout_wh, 2)}Wh\n"
                 )
-                knx_messages_log += (
+                logging.info(
                     f"Meteo: clouds={myclouds * 100}%, temp={temperature}C, "
                     f"humidity={humidity}%, pressure={pressure}hPa\n"
                 )
@@ -528,7 +528,7 @@ async def send_cyclic_data(global_obj):
                 ):
                     global_obj["switch"]["state"] = not global_obj["switch"]["state"]
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
-                    knx_messages_log += (
+                    logging.info(
                         f"Change switch state to {global_obj['switch']['state']}\n"
                     )
                     await send_switch_telegram(
@@ -544,7 +544,7 @@ async def send_cyclic_data(global_obj):
                     occupancy_state = True
                 global_obj["occupancy"]["state"] = occupancy_state
                 update_history(global_obj["history"]["occupancy"], occupancy_state)
-                knx_messages_log += (
+                logging.info(
                     f"Set presence to {occupancy_state} to group="
                     f"{global_obj['occupancy']['group_address']}\n"
                 )
@@ -559,7 +559,7 @@ async def send_cyclic_data(global_obj):
                     0 if now.hour < 7 or (now.hour == 7 and now.minute < 30) or now.hour >= 22
                     else random.randint(80, 100)
                 )
-                knx_messages_log += (
+                logging.info(
                     f"Volet position status: {global_obj['volet']['position']}%\n"
                 )
                 await send_position_telegram(
@@ -571,7 +571,7 @@ async def send_cyclic_data(global_obj):
                 debit, volume = get_conso_data.get_water_meter_m3()
                 global_obj["eau"]["debit"]["value"] = round(debit, 6)
                 global_obj["eau"]["index"]["value"] += round(volume, 3)
-                knx_messages_log += (
+                logging.info(
                     f"Send EAU index {global_obj['eau']['index']['value']}m3 to group="
                     f"{global_obj['eau']['index']['group_address']} and "
                     f"debit {global_obj['eau']['debit']['value']}m3/h to group="
@@ -589,7 +589,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send inj-sout data to KNX
-                knx_messages_log += (
+                logging.info(
                     f"Send INJ-SOUT {int(inj_sout_power)}W to group="
                     f"{global_obj['inj_sout']['W']['group_address']}\n"
                 )
@@ -598,7 +598,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send prod data to KNX
-                knx_messages_log += (
+                logging.info(
                     f"Send PROD {int(production_W)}W to group="
                     f"{global_obj['production']['W']['group_address']} and "
                     f"{int(global_obj['production']['Wh']['value'])}Wh to group="
@@ -616,7 +616,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send conso data to KNX
-                knx_messages_log += (
+                logging.info(
                     f"Send CONSO {int(conso_w)}W to group="
                     f"{global_obj['consommation']['W']['group_address']} and "
                     f"{int(global_obj['consommation']['Wh']['value'])}Wh to group="
@@ -634,7 +634,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send injection data to KNX
-                knx_messages_log += (
+                logging.info(
                     f"Send INJ {int(inj_w)}W to group="
                     f"{global_obj['injection']['W']['group_address']} and "
                     f"{int(global_obj['injection']['Wh']['value'])}Wh to group="
@@ -652,7 +652,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send soutirage data to KNX
-                knx_messages_log += (
+                logging.info(
                     f"Send SOUT {int(sout_w)}W to group="
                     f"{global_obj['soutirage']['W']['group_address']} and "
                     f"{int(global_obj['soutirage']['Wh']['value'])}Wh to group="
@@ -670,7 +670,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Send meteo data to log
-                knx_messages_log += (
+                logging.info(
                     f"Send METEO pressure={pressure}hPa to group="
                     f"{global_obj['meteo']['pressure']['group_address']}, temperature={temperature}C to group="
                     f"{global_obj['meteo']['temperature']['group_address']}, humidity={humidity}% to group="
