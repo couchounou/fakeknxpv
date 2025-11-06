@@ -233,10 +233,10 @@ def encode_dpt16(text: str) -> bytes:
 
 
 def save_indexes(save_cycle_s):
-    logging.info("try Saving indexes to files...")
+    logging.info("try Saving indexes to files...with last_saved_timestamp=%s", last_saved_timestamp)
     if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
         with open(history_file_path, "w", encoding="UTF-8") as my_file:
-            logging.info("  Saving indexes to files...")
+            logging.info("  Saving history to %s", history_file_path)
             json.dump(jstatus["history"], my_file, ensure_ascii=False)
         with open(index_file_path, "w", encoding="UTF-8") as my_file:
             obj = {
@@ -247,14 +247,14 @@ def save_indexes(save_cycle_s):
                 "eau_index": jstatus["eau"]["index"]["value"]
             }
             json.dump(obj, my_file, ensure_ascii=False)
-            logging.info("  Saving indexes to files...")
+            logging.info("  Saving index to %s", index_file_path)
         try:
             publish_upnp_service(get_local_ip(), 8080)
         except Exception as e:
             print(f"Error publishing UPnP service: {e}")
             logging.error(f"Error publishing UPnP service: {e}")
         return datetime.now().timestamp()
-    return None
+    return last_saved_timestamp
 
 
 def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.now().timestamp()):
@@ -695,7 +695,7 @@ async def send_cyclic_data(global_obj):
                     )
                     await xknx.telegrams.put(telegram)
 
-                last_saved_timestamp = save_indexes(global_obj["save_cycle_s"]) or last_saved_timestamp
+                last_saved_timestamp = save_indexes(global_obj["save_cycle_s"])
                 print(knx_messages_log)
                 logging.info(knx_messages_log)
             except Exception as e:
