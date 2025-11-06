@@ -530,6 +530,8 @@ async def send_cyclic_data(global_obj):
                 if datetime.fromisoformat(global_obj["switch"].get("last_action_time", datetime.now().isoformat())) < (
                     datetime.now() - timedelta(minutes=12)
                 ):
+                    logging.info("Auto toggle switch state condition met")
+                    logging.info("Current switch state: %s", global_obj["switch"]["state"])
                     global_obj["switch"]["state"] = not global_obj["switch"].get("state", False)
                     logging.info("Auto toggle switch state after 12 minutes")
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
