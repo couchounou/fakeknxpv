@@ -118,8 +118,8 @@ def get_water_meter_m3():
     # Calcul du volume écoulé depuis le dernier appel
     if _last_water_call is not None:
         delta_min = (now - _last_water_call) / 60.0
-        volume_m3 = debit_l_min * delta_min / 1000  # conversion L -> m³
+        volume_m3 = debit_m3_s * (delta_min * 60)  # conversion L -> m³
         _total_water_volume += volume_m3
     _last_water_call = now
     logging.info("Débit: %s m3/s, Volume: %s m3", debit_m3_s, _total_water_volume)
-    return round(debit_m3_s, 6), round(_total_water_volume, 3)
+    return round(debit_m3_s, 6), round(_total_water_volume, 6)
