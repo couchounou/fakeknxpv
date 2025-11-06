@@ -576,7 +576,7 @@ async def send_cyclic_data(global_obj):
                 # Send water meter data to KNX
                 debit, volume = get_conso_data.get_water_meter_m3()
                 global_obj["eau"]["debit"]["value"] = round(debit, 6)
-                global_obj["eau"]["index"]["value"] += round(volume, 3)
+                global_obj["eau"]["index"]["value"] += round(volume, 6)
                 logging.info(
                     "Send EAU index %sm3 to group=%s and debit %sm3/h to group=%s",
                     global_obj['eau'].get('index', {}).get('value', 0),
