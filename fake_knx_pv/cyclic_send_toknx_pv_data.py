@@ -361,7 +361,7 @@ async def send_cyclic_data(global_obj):
     print("XKNX started")
 
     global last_updated_timestamp, last_saved_timestamp
-
+    global_obj["switch"]["state"] = False
     def relay_listener(telegram):
         if (
             telegram.destination_address == GroupAddress(global_obj["switch"]["group_address"]) and
@@ -521,9 +521,10 @@ async def send_cyclic_data(global_obj):
                 global_obj["updated"] = datetime.now().isoformat()
                 logging.info("Updated global_obj timestamp to %s", global_obj["updated"])
                 # switch state auto-off after 1 hour
+                
                 logging.info(
                     "Switch last action time: %s, delay: %s",
-                    global_obj["switch"].get("last_action_time"),
+                    datetime.fromisoformat(global_obj["switch"].get("last_action_time")),
                     datetime.now() - timedelta(minutes=12)
                 )
                 if datetime.fromisoformat(global_obj["switch"].get("last_action_time", datetime.now().isoformat())) < (
@@ -533,10 +534,10 @@ async def send_cyclic_data(global_obj):
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
                     logging.info(
                         "Change switch state to %s",
-                        global_obj['switch']['state']
+                        global_obj["switch"]["state"]
                     )
                     await send_switch_telegram(
-                        xknx, False, global_obj['switch']['state_group_address']
+                        xknx, False, global_obj["switch"]["state_group_address"]
                     )
                 update_history(global_obj["history"]["switch"], int(global_obj["switch"]["state"]))
 
