@@ -488,19 +488,19 @@ async def send_cyclic_data(global_obj):
                 global_obj["production"]["Wh"]["value"] += production_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
                 logging.info(
-                    "Simu prod:  %.2fW(%.2fWh)\n",
+                    "Simu prod:  %.2fW(%.2fWh)",
                     round(production_W, 2), round(production_wh, 2)
                 )
                 logging.info(
-                    "Simu conso: %.2fW(%.2fWh)\n",
+                    "Simu conso: %.2fW(%.2fWh)",
                     round(conso_w, 2), round(conso_wh, 2)
                 )
                 logging.info(
-                    "Simu Injection: %.2fW(%.2fWh), Soutirage: %.2fW - %.2fWh\n",
+                    "Simu Injection: %.2fW(%.2fWh), Soutirage: %.2fW - %.2fWh",
                     round(inj_w, 2), round(inj_wh, 2), round(sout_w, 2), round(sout_wh, 2)
                 )
                 logging.info(
-                    "Meteo: clouds=%s%%, temp=%sC, humidity=%s%%, pressure=%shPa\n",
+                    "Meteo: clouds=%s%%, temp=%sC, humidity=%s%%, pressure=%shPa",
                     myclouds * 100, temperature, humidity, pressure
                 )
 
@@ -531,7 +531,7 @@ async def send_cyclic_data(global_obj):
                     global_obj["switch"]["state"] = not global_obj["switch"]["state"]
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
                     logging.info(
-                        "Change switch state to %s\n",
+                        "Change switch state to %s",
                         global_obj['switch']['state']
                     )
                     await send_switch_telegram(
@@ -548,7 +548,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["occupancy"]["state"] = occupancy_state
                 update_history(global_obj["history"]["occupancy"], occupancy_state)
                 logging.info(
-                    "Set presence to %s to group=%s\n",
+                    "Set presence to %s to group=%s",
                     occupancy_state,
                     global_obj['occupancy']['group_address']
                 )
@@ -794,7 +794,7 @@ async def scan() -> None:
         )
         print(f"  Routing: {routing}")
     if not gatewayscanner.found_gateways:
-        print("⚠ No Gateways found\n")
+        print("⚠ No Gateways found")
 
 
 if __name__ == "__main__":
