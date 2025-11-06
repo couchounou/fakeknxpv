@@ -672,9 +672,9 @@ async def send_cyclic_data(global_obj):
                 # Send meteo data to log
                 knx_messages_log += (
                     f"Send METEO pressure={pressure}hPa to group="
-                    f"{global_obj['meteo']['pressure']}, temperature={temperature}C to group="
-                    f"{global_obj['meteo']['temperature']}, humidity={humidity}% to group="
-                    f"{global_obj['meteo']['humidity']}\n"
+                    f"{global_obj['meteo']['pressure']['group_address']}, temperature={temperature}C to group="
+                    f"{global_obj['meteo']['temperature']['group_address']}, humidity={humidity}% to group="
+                    f"{global_obj['meteo']['humidity']['group_address']}\n"
                 )
                 if pressure:
                     telegram = Telegram(
