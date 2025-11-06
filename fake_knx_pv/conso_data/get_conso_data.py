@@ -113,7 +113,7 @@ def get_water_meter_m3():
     global _last_water_call, _total_water_volume
     now = datetime.now().timestamp()
     # Débit simulé (aléatoire, max 4 L/min)
-    debit_l_min = random.uniform(0, 4)
+    debit_l_min = random.uniform(0, 2)
     debit_m3_s = debit_l_min / 1000 / 60  # conversion L/min -> m³/s
     # Calcul du volume écoulé depuis le dernier appel
     if _last_water_call is not None:
@@ -121,5 +121,5 @@ def get_water_meter_m3():
         volume_m3 = debit_m3_s * delta_s  # conversion L -> m³
         _total_water_volume += volume_m3
     _last_water_call = now
-    logging.info("Débit: %s m3/s, Volume: %s m3", debit_m3_s, _total_water_volume)
+    logging.info("Débit: %s m3/s, Volume: %s m3 en %ss", debit_m3_s, _total_water_volume, delta_s)
     return round(debit_m3_s, 6), round(_total_water_volume, 6)
