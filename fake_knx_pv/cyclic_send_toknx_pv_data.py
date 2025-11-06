@@ -218,13 +218,15 @@ if os.path.exists(index_file_path):
         jstatus["eau"]["index"]["value"] = data.get('eau_index', 0.0)
 
 
-def update_history(history_list, value, max_hours=48):
+def update_history(history, key, value, max_hours=48):
     now = datetime.now().isoformat()
-    history_list.append({"timestamp": now, "value": value})
+    if key not in history:
+        history[key] = []
+    history[key].append({"timestamp": now, "value": value})
     # Supprime les entrées de plus de 48h
     cutoff = datetime.now() - timedelta(hours=max_hours)
     # On garde uniquement les entrées récentes
-    history_list[:] = [item for item in history_list if datetime.fromisoformat(item["timestamp"]) >= cutoff]
+    history[key][:] = [item for item in history[key] if datetime.fromisoformat(item["timestamp"]) >= cutoff]
 
 
 def encode_dpt16(text: str) -> bytes:
@@ -361,7 +363,7 @@ async def send_cyclic_data(global_obj):
     print("XKNX started")
 
     global last_updated_timestamp, last_saved_timestamp
-    global_obj["switch"]["state"] = False
+ 
     def relay_listener(telegram):
         if (
             telegram.destination_address == GroupAddress(global_obj["switch"]["group_address"]) and
@@ -505,9 +507,9 @@ async def send_cyclic_data(global_obj):
                 )
 
                 # Update history
-                update_history(global_obj["history"]["production"], int(production_W))
-                update_history(global_obj["history"]["injection"], int(-inj_w))
-                update_history(global_obj["history"]["soutirage"], int(sout_w))
+                update_history(global_obj["history"], "production", int(production_W))
+                update_history(global_obj["history"], "injection", int(-inj_w))
+                update_history(global_obj["history"], "soutirage", int(sout_w))
 
                 global_obj["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
                 global_obj["production"]["W"]["value"] = int(production_W)
@@ -519,21 +521,10 @@ async def send_cyclic_data(global_obj):
                 global_obj["meteo"]["humidity"]["value"] = humidity
                 global_obj["meteo"]["clouds"]["value"] = myclouds * 100
                 global_obj["updated"] = datetime.now().isoformat()
-                logging.info("Updated global_obj timestamp to %s", global_obj["updated"])
-                # switch state auto-off after 1 hour
-                
-                logging.info(
-                    "Switch last action time: %s, delay: %s",
-                    datetime.fromisoformat(global_obj["switch"].get("last_action_time")),
-                    datetime.now() - timedelta(minutes=12)
-                )
                 if datetime.fromisoformat(global_obj["switch"].get("last_action_time", datetime.now().isoformat())) < (
                     datetime.now() - timedelta(minutes=12)
                 ):
-                    logging.info("Auto toggle switch state condition met")
-                    logging.info("Current switch state: %s", global_obj["switch"]["state"])
                     global_obj["switch"]["state"] = not global_obj["switch"].get("state", False)
-                    logging.info("Auto toggle switch state after 12 minutes")
                     global_obj["switch"]["last_action_time"] = datetime.now().isoformat()
                     logging.info(
                         "Change switch state to %s",
@@ -548,7 +539,7 @@ async def send_cyclic_data(global_obj):
                 )
 
                 logging.info(global_obj["history"])
-                update_history(global_obj["history"]["switch"], int(global_obj["switch"].get("state", False)))
+                update_history(global_obj["history"], "switch", int(global_obj["switch"].get("state", False)))
 
                 # occupancy detection
                 occupancy_state = False
@@ -557,7 +548,7 @@ async def send_cyclic_data(global_obj):
                 else:
                     occupancy_state = True
                 global_obj["occupancy"]["state"] = occupancy_state
-                update_history(global_obj["history"]["occupancy"], occupancy_state)
+                update_history(global_obj["history"], "occupancy", occupancy_state)
                 logging.info(
                     "Set presence to %s to group=%s",
                     occupancy_state,
