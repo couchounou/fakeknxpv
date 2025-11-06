@@ -534,11 +534,10 @@ async def send_cyclic_data(global_obj):
                         xknx, False, global_obj["switch"]["state_group_address"]
                     )
                 logging.info(
-                    "Switch state is %s",
+                    "Switch state is now %s",
                     global_obj["switch"].get("state", False)
                 )
 
-                logging.info(global_obj["history"])
                 update_history(global_obj["history"], "switch", int(global_obj["switch"].get("state", False)))
 
                 # occupancy detection
