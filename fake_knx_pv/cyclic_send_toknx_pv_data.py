@@ -678,19 +678,19 @@ async def send_cyclic_data(global_obj):
                 )
                 if pressure:
                     telegram = Telegram(
-                        destination_address=GroupAddress(global_obj["meteo"]["pressure"]),
+                        destination_address=GroupAddress(global_obj["meteo"]["pressure"]['group_address']),
                         payload=GroupValueWrite(DPTPressure2Byte.to_knx(int(pressure * 100))),
                     )
                     await xknx.telegrams.put(telegram)
                 if temperature:
                     telegram = Telegram(
-                        destination_address=GroupAddress(global_obj["meteo"]["temperature"]),
+                        destination_address=GroupAddress(global_obj["meteo"]["temperature"]['group_address']),
                         payload=GroupValueWrite(DPTTemperature.to_knx(float(temperature))),
                     )
                     await xknx.telegrams.put(telegram)
                 if humidity:
                     telegram = Telegram(
-                        destination_address=GroupAddress(global_obj["meteo"]["humidity"]),
+                        destination_address=GroupAddress(global_obj["meteo"]["humidity"]['group_address']),
                         payload=GroupValueWrite(DPTHumidity.to_knx(int(humidity))),
                     )
                     await xknx.telegrams.put(telegram)
