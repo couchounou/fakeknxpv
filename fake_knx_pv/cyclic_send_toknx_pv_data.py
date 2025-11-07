@@ -182,7 +182,8 @@ knx_messages_log = ""
 
 # try use default raspberry config path
 # create config dir if not exists
-# else use local path
+# else use local pathexit()
+
 
 index_file_path = (
     "/boot/firmware/indexes.json"

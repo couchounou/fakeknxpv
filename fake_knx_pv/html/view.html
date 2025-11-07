@@ -317,8 +317,8 @@
         }
         function render(data) {
             // header
-            el('title').textContent = `Fake PV — ${data.gateway || 'local'}`;
-            el('meta').textContent = `version ${data.version || '—'} • updated ${data.updated || '—'} • gateway ${data.gateway || '—'}`;
+            el('title').textContent = `Fake PV — ${data.gateway.ip || 'local'}`;
+            el('meta').textContent = `version ${data.version || '—'} • updated ${fmt(data.updated) || '—'} • gateway ${data.gateway.ip}:${data.gateway.port || '—'}`;
 
             // empty grid
             const grid = el('grid'); grid.innerHTML = '';
