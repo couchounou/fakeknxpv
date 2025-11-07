@@ -206,7 +206,11 @@ print(
 # create index files if not exists and read values
 if os.path.exists(history_file_path):
     with open(history_file_path, "r", encoding="UTF-8") as myfile:
-        jstatus['history'] = json.loads(myfile.read()) or {}
+        try:
+            jstatus['history'] = json.loads(myfile.read()) or {}
+        except json.JSONDecodeError:
+            logging.error("Failed to decode JSON from history file")
+            jstatus['history'] = {}
 
 if os.path.exists(index_file_path):
     with open(index_file_path, "r", encoding="UTF-8") as myfile:
