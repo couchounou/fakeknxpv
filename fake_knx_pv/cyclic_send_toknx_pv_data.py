@@ -207,7 +207,7 @@ print(
 if os.path.exists(history_file_path):
     with open(history_file_path, "r", encoding="UTF-8") as myfile:
         try:
-            jstatus['history'] = json.loads(myfile.read()) or {}
+            jstatus['history'] = json.loads(myfile.read())
         except json.JSONDecodeError:
             logging.error("Failed to decode JSON from history file")
             jstatus['history'] = {}
