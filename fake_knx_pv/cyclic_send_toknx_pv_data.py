@@ -217,15 +217,14 @@ if os.path.exists(index_file_path):
     with open(index_file_path, "r", encoding="UTF-8") as myfile:
         try:
             data = json.load(myfile)
-            jstatus["soutirage"]["Wh"]["value"] = data.get('sout_index', 0.0)
-            jstatus["consommation"]["Wh"]["value"] = data.get('conso_index', 0.0)
-            jstatus["production"]["Wh"]["value"] = data.get('prod_index', 0.0)
-            jstatus["injection"]["Wh"]["value"] = data.get('inj_index', 0.0)
-            jstatus["eau"]["index"]["value"] = data.get('eau_index', 0.0)
         except json.JSONDecodeError:
             logging.error("Failed to decode JSON from index file")
             data = {}
-
+        jstatus["soutirage"]["Wh"]["value"] = data.get('sout_index', 0.0)
+        jstatus["consommation"]["Wh"]["value"] = data.get('conso_index', 0.0)
+        jstatus["production"]["Wh"]["value"] = data.get('prod_index', 0.0)
+        jstatus["injection"]["Wh"]["value"] = data.get('inj_index', 0.0)
+        jstatus["eau"]["index"]["value"] = data.get('eau_index', 0.0)
 
 
 def update_history(history, key, value, max_hours=48):
