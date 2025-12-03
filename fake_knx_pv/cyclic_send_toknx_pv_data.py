@@ -373,9 +373,10 @@ async def send_cyclic_data(global_obj):
 
     global last_updated_timestamp, last_saved_timestamp
 
-    allowed_switch_addresses = {GroupAddress(f"4/0/{i}") for i in range(20)}
+    allowed_switch_addresses = {GroupAddress(f"11/0/{i}") for i in range(20)}
 
     def generic_switch_listener(telegram):
+        print(f"Received telegram: {telegram.destination_address} with payload: {telegram.payload}")
         if (
             telegram.destination_address in allowed_switch_addresses and
             isinstance(telegram.payload, GroupValueWrite)
@@ -387,15 +388,15 @@ async def send_cyclic_data(global_obj):
                     xknx,
                     value,
                     GroupAddress(
-                        f"{telegram.destination_address.level1}/"
-                        f"{telegram.destination_address.level2}/"
-                        f"{telegram.destination_address.level3 + 20}"
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle}/"
+                        f"{telegram.destination_address.sub + 20}"
                     )
                 )
             )
     xknx.telegram_queue.register_telegram_received_cb(generic_switch_listener)
 
-    allowed_blind_addresses = {GroupAddress(f"4/1/{i}") for i in range(20)}
+    allowed_blind_addresses = {GroupAddress(f"11/1/{i}") for i in range(20)}
 
     def generic_blind_position_listener(telegram):
         if (
@@ -405,19 +406,20 @@ async def send_cyclic_data(global_obj):
             raw = telegram.payload.value.value
             position = int(raw[0] * 100 / 255)
             asyncio.create_task(
+                asyncio.sleep(0.2)
                 send_position_telegram(
                     xknx,
                     GroupAddress(
-                        f"{telegram.destination_address.level1}/"
-                        f"{telegram.destination_address.level2}/"
-                        f"{telegram.destination_address.level3 + 20}"
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle}/"
+                        f"{telegram.destination_address.sub + 20}"
                     ),
                     position
                 )
             )
     xknx.telegram_queue.register_telegram_received_cb(generic_blind_position_listener)
 
-    allowed_dimmer_addresses = {GroupAddress(f"4/2/{i}") for i in range(20)}
+    allowed_dimmer_addresses = {GroupAddress(f"11/2/{i}") for i in range(20)}
 
     def generic_dimmer_listener(telegram):
         if (
@@ -427,12 +429,13 @@ async def send_cyclic_data(global_obj):
             raw = telegram.payload.value.value
             brightness = int(raw[0] * 100 / 255)
             asyncio.create_task(
+                asyncio.sleep(0.2)
                 send_position_telegram(
                     xknx,
                     GroupAddress(
-                        f"{telegram.destination_address.level1}/"
-                        f"{telegram.destination_address.level2}/"
-                        f"{telegram.destination_address.level3 + 20}"
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle}/"
+                        f"{telegram.destination_address.sub + 20}"
                     ),
                     brightness
                 )
@@ -453,6 +456,7 @@ async def send_cyclic_data(global_obj):
                 f"sending update to {global_obj['switch']['state_group_address']}"
             )
             asyncio.create_task(
+                asyncio.sleep(0.2)
                 send_switch_telegram(
                     xknx,
                     switch_state,

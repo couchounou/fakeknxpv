@@ -121,6 +121,7 @@ def get_water_meter_m3():
     debit_l_min = random.uniform(0, 2) * random.randint(0, 1)
     debit_m3_s = debit_l_min / 1000 / 60  # conversion L/min -> m³/s
     # Calcul du volume écoulé depuis le dernier appel
+    delta_s = 0
     if _last_water_call is not None:
         delta_s = (now - _last_water_call)
         volume_m3 = debit_m3_s * delta_s  # conversion L -> m³

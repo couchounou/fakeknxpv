@@ -24,13 +24,13 @@ les données des config sont a personnaliser dans  cyclic_send_toknx_pv_data.cfg
 
 
 ## Switch virtuels 
-commandes reçues sur 4/0/0-4/0/19
-etats renvoyés sur 4/0/20-4/0/39
+commandes reçues sur 11/0/0-11/0/19
+etats renvoyés sur 11/0/20-11/0/39
 
 ## Blind virtuels
-commandes reçues sur 4/1/0-4/1/19
-etats renvoyés sur 4/1/20-4/1/39
+commandes reçues sur 11/1/0-11/1/19
+etats renvoyés sur 11/1/20-11/1/39
 
 ## Dimmer virtuels
-commandes reçues sur 4/2/0-4/2/19
-etats renvoyés sur 4/2/20-4/2/39 
+commandes reçues sur 11/2/0-11/2/19
+etats renvoyés sur 11/2/20-11/2/39 
