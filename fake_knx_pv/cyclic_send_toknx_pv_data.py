@@ -372,7 +372,73 @@ async def send_cyclic_data(global_obj):
     print("XKNX started")
 
     global last_updated_timestamp, last_saved_timestamp
- 
+
+    allowed_switch_addresses = {GroupAddress(f"4/0/{i}") for i in range(20)}
+
+    def generic_switch_listener(telegram):
+        if (
+            telegram.destination_address in allowed_switch_addresses and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
+            value = telegram.payload.value.value
+            print(f"Generic switch command received value: {value}")
+            asyncio.create_task(
+                send_switch_telegram(
+                    xknx,
+                    value,
+                    GroupAddress(
+                        f"{telegram.destination_address.level1}/"
+                        f"{telegram.destination_address.level2}/"
+                        f"{telegram.destination_address.level3 + 20}"
+                    )
+                )
+            )
+    xknx.telegram_queue.register_telegram_received_cb(generic_switch_listener)
+
+    allowed_blind_addresses = {GroupAddress(f"4/1/{i}") for i in range(20)}
+
+    def generic_blind_position_listener(telegram):
+        if (
+            telegram.destination_address in allowed_blind_addresses and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
+            raw = telegram.payload.value.value
+            position = int(raw[0] * 100 / 255)
+            asyncio.create_task(
+                send_position_telegram(
+                    xknx,
+                    GroupAddress(
+                        f"{telegram.destination_address.level1}/"
+                        f"{telegram.destination_address.level2}/"
+                        f"{telegram.destination_address.level3 + 20}"
+                    ),
+                    position
+                )
+            )
+    xknx.telegram_queue.register_telegram_received_cb(generic_blind_position_listener)
+
+    allowed_dimmer_addresses = {GroupAddress(f"4/2/{i}") for i in range(20)}
+
+    def generic_dimmer_listener(telegram):
+        if (
+            telegram.destination_address in allowed_dimmer_addresses and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
+            raw = telegram.payload.value.value
+            brightness = int(raw[0] * 100 / 255)
+            asyncio.create_task(
+                send_position_telegram(
+                    xknx,
+                    GroupAddress(
+                        f"{telegram.destination_address.level1}/"
+                        f"{telegram.destination_address.level2}/"
+                        f"{telegram.destination_address.level3 + 20}"
+                    ),
+                    brightness
+                )
+            )
+    xknx.telegram_queue.register_telegram_received_cb(generic_dimmer_listener)
+
     def relay_listener(telegram):
         if (
             telegram.destination_address == GroupAddress(global_obj["switch"]["group_address"]) and

@@ -23,3 +23,14 @@ Après installation utilisez directement le simulateur avec la commande
 les données des config sont a personnaliser dans  cyclic_send_toknx_pv_data.cfg
 
 
+## Switch virtuels 
+commandes reçues sur 4/0/0-4/0/19
+etats renvoyés sur 4/0/20-4/0/39
+
+## Blind virtuels
+commandes reçues sur 4/1/0-4/1/19
+etats renvoyés sur 4/1/20-4/1/39
+
+## Dimmer virtuels
+commandes reçues sur 4/2/0-4/2/19
+etats renvoyés sur 4/2/20-4/2/39 
