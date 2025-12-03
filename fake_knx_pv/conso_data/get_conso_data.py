@@ -86,6 +86,8 @@ def profil_maison(heure, jour_semaine, pmax=6):
         # Plus d'activité toute la journée
         facteur = 1.1 if 8 <= h <= 22 else 0.7
 
+
+
     puissance = base * facteur
 
     # Ajout de la courbe chauffe-eau séparée
@@ -97,6 +99,9 @@ def profil_maison(heure, jour_semaine, pmax=6):
     # Ajout de bruit réaliste
     bruit = random.uniform(-0.3, 0.3)
     puissance = max(0.0, min(pmax, puissance + bruit))
+
+    # on rajoute s'assure que la puissance est au dessus d'un minimum aléatoire
+    puissance += max(random.uniform(0.012, 0.048), puissance)
 
     return float(puissance * 1000)
 
