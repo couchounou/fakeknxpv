@@ -1,6 +1,7 @@
 import threading
 import time
 
+
 class volet:
     def __init__(self):
         self.position = 0  # 0 = fermé, 100 = ouvert

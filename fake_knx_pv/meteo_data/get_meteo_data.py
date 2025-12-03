@@ -27,5 +27,6 @@ def get_meteo_data(lat, lon, api_key=None):
         logging.info(f"Erreur lors de la récupération des données météo : {e}")
         return None
 
+
 if __name__ == "__main__":
-    logging.info(clouds(lat=48, lon=3))
+    logging.info(get_meteo_data(lat=48, lon=3))

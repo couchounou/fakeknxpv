@@ -86,8 +86,6 @@ def profil_maison(heure, jour_semaine, pmax=6):
         # Plus d'activité toute la journée
         facteur = 1.1 if 8 <= h <= 22 else 0.7
 
-
-
     puissance = base * facteur
 
     # Ajout de la courbe chauffe-eau séparée

@@ -283,7 +283,13 @@ def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.n
     else:
         sout_power = abs(inj)
         diff_sout_index = energy
-    logging.info("Inj power %sW diff inj_index:%sWh, Sout power:%sW diff sout_index:%sWh", inj_power, diff_inj_index, sout_power, diff_sout_index)
+    logging.info(
+        "Inj power %sW diff inj_index:%sWh, Sout power:%sW diff sout_index:%sWh",
+        inj_power,
+        diff_inj_index,
+        sout_power,
+        diff_sout_index
+    )
     return inj_power, diff_inj_index, sout_power, diff_sout_index
 
 
@@ -457,7 +463,6 @@ async def send_cyclic_data(global_obj):
                 f"sending update to {global_obj['switch']['state_group_address']}"
             )
             asyncio.create_task(
-                asyncio.sleep(0.2)
                 send_switch_telegram(
                     xknx,
                     switch_state,
