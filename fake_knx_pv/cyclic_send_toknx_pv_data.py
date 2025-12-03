@@ -375,7 +375,7 @@ async def send_cyclic_data(global_obj):
 
     allowed_switch_addresses = {GroupAddress(f"11/0/{i}") for i in range(20)}
 
-    def generic_switch_listener(telegram):
+    async def generic_switch_listener(telegram):
         print(f"Received telegram: {telegram.destination_address} with payload: {telegram.payload}")
         if (
             telegram.destination_address in allowed_switch_addresses and
@@ -383,6 +383,7 @@ async def send_cyclic_data(global_obj):
         ):
             value = telegram.payload.value.value
             print(f"Generic switch command received value: {value}")
+            await asyncio.sleep(0.2)
             asyncio.create_task(
                 send_switch_telegram(
                     xknx,
@@ -398,15 +399,15 @@ async def send_cyclic_data(global_obj):
 
     allowed_blind_addresses = {GroupAddress(f"11/1/{i}") for i in range(20)}
 
-    def generic_blind_position_listener(telegram):
+    async def generic_blind_position_listener(telegram):
         if (
             telegram.destination_address in allowed_blind_addresses and
             isinstance(telegram.payload, GroupValueWrite)
         ):
             raw = telegram.payload.value.value
             position = int(raw[0] * 100 / 255)
+            await asyncio.sleep(0.2)
             asyncio.create_task(
-                asyncio.sleep(0.2)
                 send_position_telegram(
                     xknx,
                     GroupAddress(
@@ -421,15 +422,15 @@ async def send_cyclic_data(global_obj):
 
     allowed_dimmer_addresses = {GroupAddress(f"11/2/{i}") for i in range(20)}
 
-    def generic_dimmer_listener(telegram):
+    async def generic_dimmer_listener(telegram):
         if (
             telegram.destination_address in allowed_dimmer_addresses and
             isinstance(telegram.payload, GroupValueWrite)
         ):
             raw = telegram.payload.value.value
             brightness = int(raw[0] * 100 / 255)
+            await asyncio.sleep(0.2)
             asyncio.create_task(
-                asyncio.sleep(0.2)
                 send_position_telegram(
                     xknx,
                     GroupAddress(
