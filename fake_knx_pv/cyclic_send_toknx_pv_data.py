@@ -335,6 +335,7 @@ async def send_rgb_telegram(
     group_address,
     value
 ):
+    rgb = {'red': 0, 'green': 0, 'blue': 0}
     if len(value) == 3:
         rgb = {'red': value[0], 'green': value[1], 'blue': value[2]}
     dpt = DPTColorRGB.to_knx(rgb)
@@ -454,7 +455,7 @@ async def send_cyclic_data(global_obj):
             value = (r, g, b)
             logging.info("Generic rgb command received value: %s", value)
             asyncio.create_task(
-                send_color_telegram(
+                send_rgb_telegram(
                     xknx,
                     GroupAddress(
                         f"{telegram.destination_address.main}/"
