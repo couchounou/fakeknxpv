@@ -30,3 +30,7 @@ etats renvoyés sur 11/0/20-11/0/39
 ## 20 Positions virtuels %
 commandes reçues sur 11/1/0-11/1/19
 etats renvoyés sur 11/1/20-11/1/39
+
+## 20 RGB 3 bytes virtuels %
+commandes reçues sur 11/2/0-11/1/19
+etats renvoyés sur 11/2/20-11/1/39

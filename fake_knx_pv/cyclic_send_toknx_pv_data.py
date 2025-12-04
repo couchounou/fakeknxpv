@@ -24,7 +24,8 @@ from xknx.dpt import (
     DPTScaling,
     DPTBinary,
     DPTVolume,
-    DPTVolumeFlux
+    DPTVolumeFlux,
+    DPTColorRGB
 )
 from xknx.telegram.apci import GroupValueWrite
 from pv_data import get_pv_data
@@ -329,12 +330,26 @@ async def send_volume_telegram(
     await send_telegram(xknx, group_address, dpt)
 
 
+async def send_rgb_telegram(
+    xknx,
+    group_address,
+    value
+):
+    if len(value) == 3:
+        rgb = {'red': value[0], 'green': value[1], 'blue': value[2]}
+    dpt = DPTColorRGB.to_knx(rgb)
+    print(dpt)
+    await asyncio.sleep(0.3)
+    await send_telegram(xknx, group_address, dpt)
+
+
 async def send_position_telegram(
     xknx,
     group_address,
     value
 ):
     dpt = DPTScaling.to_knx(value)
+    await asyncio.sleep(0.3)
     await send_telegram(xknx, group_address, dpt)
 
 
@@ -379,6 +394,7 @@ async def send_cyclic_data(global_obj):
 
     global last_updated_timestamp, last_saved_timestamp
 
+    # Listener pour les adresses de switch génériques
     allowed_switch_addresses = {GroupAddress(f"11/0/{i}") for i in range(20)}
 
     def generic_switch_listener(telegram):
@@ -401,6 +417,7 @@ async def send_cyclic_data(global_obj):
             )
     xknx.telegram_queue.register_telegram_received_cb(generic_switch_listener)
 
+    # Listener pour les adresses de position génériques
     allowed_blind_addresses = {GroupAddress(f"11/1/{i}") for i in range(20)}
 
     def generic_position_listener(telegram):
@@ -424,6 +441,32 @@ async def send_cyclic_data(global_obj):
             )
     xknx.telegram_queue.register_telegram_received_cb(generic_position_listener)
 
+    # Listener pour les adresses rgbcolor génériques
+    allowed_rgb_addresses = {GroupAddress(f"11/2/{i}") for i in range(20)}
+
+    def generic_rgb_listener(telegram):
+        if (
+            telegram.destination_address in allowed_rgb_addresses and
+            isinstance(telegram.payload, GroupValueWrite)
+        ):
+            raw = telegram.payload.value.value
+            r, g, b = raw[0], raw[1], raw[2]
+            value = (r, g, b)
+            logging.info("Generic rgb command received value: %s", value)
+            asyncio.create_task(
+                send_color_telegram(
+                    xknx,
+                    GroupAddress(
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle}/"
+                        f"{telegram.destination_address.sub + 20}"
+                    ),
+                    value
+                )
+            )
+    xknx.telegram_queue.register_telegram_received_cb(generic_rgb_listener)
+
+    # Listener pour le switch principal
     def relay_listener(telegram):
         if (
             telegram.destination_address == GroupAddress(global_obj["switch"]["group_address"]) and
@@ -445,7 +488,6 @@ async def send_cyclic_data(global_obj):
                 )
             )
 
-    # Ajoute le listener à xknx
     xknx.telegram_queue.register_telegram_received_cb(relay_listener)
 
     def volet_up_down_listener(telegram):
@@ -475,7 +517,7 @@ async def send_cyclic_data(global_obj):
             print(f"Volet position statusd: {position}%")
             global_obj["volet"]["position"] = position
             print(
-                f"Volet position changed to {position}%, " 
+                f"Volet position changed to {position}%"
                 f"sending update to {global_obj['volet']['position_group_address']}"
             )
             asyncio.create_task(
@@ -499,7 +541,7 @@ async def send_cyclic_data(global_obj):
             volet.set_position(position)
             global_obj["volet"]["position"] = position
             print(
-                f"Volet position changed to {position}%, "
+                f"Volet position changed to {position}%"
                 f"sending update to {global_obj['volet']['position_group_address']}"
             )
             # Envoie la position réelle du volet encodée en DPTScaling
