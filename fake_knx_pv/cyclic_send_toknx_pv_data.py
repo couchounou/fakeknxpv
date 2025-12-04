@@ -340,7 +340,6 @@ async def send_rgb_telegram(
         rgb = {'red': value[0], 'green': value[1], 'blue': value[2]}
     dpt = DPTColorRGB.to_knx(rgb)
     print(dpt)
-    await asyncio.sleep(0.3)
     await send_telegram(xknx, group_address, dpt)
 
 
@@ -350,7 +349,6 @@ async def send_position_telegram(
     value
 ):
     dpt = DPTScaling.to_knx(value)
-    await asyncio.sleep(0.3)
     await send_telegram(xknx, group_address, dpt)
 
 
@@ -359,6 +357,7 @@ async def send_telegram(
     group_address,
     dpt
 ):
+    await asyncio.sleep(0.3)
     await xknx.telegrams.put(
         Telegram(
             destination_address=GroupAddress(group_address),
