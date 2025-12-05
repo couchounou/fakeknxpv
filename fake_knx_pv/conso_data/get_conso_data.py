@@ -104,7 +104,7 @@ def profil_maison(heure, jour_semaine, pmax=6):
     return float(puissance * 1000)
 
 
-_last_water_call = None
+_last_water_call = datetime.now().timestamp()
 _total_water_volume = 0.0
 
 
@@ -116,8 +116,7 @@ def get_water_meter_m3():
     global _last_water_call, _total_water_volume
     now = datetime.now().timestamp()
     # Débit simulé (aléatoire, max 4 L/min)
-    debit_l_min = random.uniform(0, 2) * random.randint(0, 1)
-    debit_m3_s = debit_l_min / 1000 / 60  # conversion L/min -> m³/s
+    debit_m3_s = random.uniform(0, 0.00004) * random.randint(0, 1)
     # Calcul du volume écoulé depuis le dernier appel
     delta_s = 0
     if _last_water_call is not None:
