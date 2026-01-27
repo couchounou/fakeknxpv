@@ -134,7 +134,8 @@ jstatus = {
     },
     "eau": {
         "index": {"group_address": "", "value": 0},
-        "debit": {"group_address": "", "value": 0}
+        "debit": {"group_address": "", "value": 0},
+        "delta": 0
     },
     "meteo": {
         "temperature": {},
@@ -678,6 +679,7 @@ async def send_cyclic_data(global_obj):
                 # Send water meter data to KNX
                 debit, volume = get_conso_data.get_water_meter_m3()
                 global_obj["eau"]["debit"]["value"] = round(debit, 6)
+                global_obj["eau"]["delta"] = round(volume, 6)
                 global_obj["eau"]["index"]["value"] += round(volume, 6)
                 logging.info(
                     "Send EAU index %sm3 to group=%s and debit %sm3/h to group=%s",
