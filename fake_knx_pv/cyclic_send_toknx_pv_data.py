@@ -560,13 +560,19 @@ async def send_cyclic_data(global_obj):
     try:
         while True:
             now = datetime.now().time()
-            if time(16, 50) <= now <= time(17, 0):
+            if time(17,0 ) <= now <= time(17, 10):
                 # send 0 to soutirage for test purpose
                 await send_energy_telegram(
                     xknx,
                     global_obj['soutirage']['Wh']['group_address'],
                     0
                 )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['injection']['Wh']['group_address'],
+                    0
+                )
+
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
                     lat=global_obj.get("latitude", 48.8566),
