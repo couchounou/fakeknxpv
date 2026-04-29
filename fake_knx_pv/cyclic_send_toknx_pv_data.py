@@ -560,7 +560,7 @@ async def send_cyclic_data(global_obj):
     try:
         while True:
             now = datetime.now().time()
-            if time(17,0 ) <= now <= time(17, 10):
+            if time(16,0 ) <= now <= time(16, 10):
                 # send 0 to soutirage for test purpose
                 logging.info("Send 0 to soutirage and injection on %s and %s groups for test purpose", global_obj['soutirage']['Wh']['group_address'], global_obj['injection']['Wh']['group_address'])
                 await send_energy_telegram(
