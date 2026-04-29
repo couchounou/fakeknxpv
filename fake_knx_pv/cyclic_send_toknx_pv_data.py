@@ -565,12 +565,12 @@ async def send_cyclic_data(global_obj):
                 await send_energy_telegram(
                     xknx,
                     global_obj['soutirage']['Wh']['group_address'],
-                    0
+                    0.
                 )
                 await send_energy_telegram(
                     xknx,
                     global_obj['injection']['Wh']['group_address'],
-                    0
+                    0.
                 )
 
             try:
