@@ -573,7 +573,8 @@ async def send_cyclic_data(global_obj):
                     global_obj['injection']['Wh']['group_address'],
                     0.
                 )
-
+            else:
+                logging.info("Sending real cyclic data to KNX...")
             try:
                 myclouds, temperature, humidity, pressure = get_meteo_data.get_meteo_data(
                     lat=global_obj.get("latitude", 48.8566),

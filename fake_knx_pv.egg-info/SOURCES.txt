@@ -4,6 +4,7 @@ pyproject.toml
 setup.py
 fake_knx_pv/VERSION
 fake_knx_pv/cyclic_send_toknx_pv_data.cfg
+fake_knx_pv/cyclic_send_toknx_pv_data.cfg.exemple
 fake_knx_pv/cyclic_send_toknx_pv_data.py
 fake_knx_pv/history.json
 fake_knx_pv/indexes.json
@@ -17,5 +18,6 @@ fake_knx_pv/conso_data/get_conso_data.py
 fake_knx_pv/conso_data/__pycache__/get_conso_data.cpython-311.pyc
 fake_knx_pv/pv_data/__init__.py
 fake_knx_pv/pv_data/get_pv_data.py
+fake_knx_pv/pv_data/pv_proj.py
 fake_knx_pv/pv_data/__pycache__/__init__.cpython-311.pyc
 fake_knx_pv/pv_data/__pycache__/get_pv_data.cpython-311.pyc
