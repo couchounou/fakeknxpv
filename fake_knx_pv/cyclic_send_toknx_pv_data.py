@@ -197,13 +197,19 @@ history_file_path = (
     if os.path.exists("/boot/firmware/")
     else os.path.join(basepath, "history.json")
 )
+status_file_path = (
+    "/boot/firmware/data.json"
+    if os.path.exists("/boot/firmware/")
+    else os.path.join(basepath, "data.json")
+)
 config_file = (
     "/boot/firmware/cyclic_send_toknx_pv_data.cfg"
     if os.path.exists("/boot/firmware/cyclic_send_toknx_pv_data.cfg")
     else os.path.join(basepath, "cyclic_send_toknx_pv_data.cfg")
 )
 print(
-    f"Using files: \n {index_file_path}\n {history_file_path}\n {config_file=}"
+    f"Using files: \n {index_file_path}\n {history_file_path}\n "
+    f"{status_file_path}\n {config_file=}"
 )
 
 # create index files if not exists and read values
@@ -238,6 +244,12 @@ def update_history(history, key, value, max_hours=48):
     cutoff = datetime.now() - timedelta(hours=max_hours)
     # On garde uniquement les entrées récentes
     history[key][:] = [item for item in history[key] if datetime.fromisoformat(item["timestamp"]) >= cutoff]
+
+
+def save_status(global_obj):
+    with open(status_file_path, "w", encoding="UTF-8") as my_file:
+        json.dump(global_obj, my_file, ensure_ascii=False, indent=2)
+    logging.info("Saved current status to %s", status_file_path)
 
 
 def encode_dpt16(text: str) -> bytes:
@@ -386,10 +398,13 @@ async def send_cyclic_data(global_obj):
         connection_type=ConnectionType.TUNNELING,
         gateway_ip=global_obj["gateway"]["ip"],
         gateway_port=global_obj["gateway"]["port"],
-        response_timeout=6,
     )
     print(f"XKNX connecting to {global_obj['gateway']['ip']}:{global_obj['gateway']['port']}")
-    xknx = XKNX(connection_config=connection_config, rate_limit=3)
+    xknx = XKNX(
+        connection_config=connection_config,
+        rate_limit=3,
+        request_timeout=6
+    )
     print("XKNX starting...")
     await xknx.start()
     print("XKNX started")
@@ -835,6 +850,12 @@ async def send_cyclic_data(global_obj):
                     )
                     await xknx.telegrams.put(telegram)
 
+                save_status(global_obj)
+                try:
+                    with open("data.json", "w") as f:
+                        f.write(json.dumps(global_obj))
+                except Exception as e:
+                    logging.info("Error saving data: %s", e)
                 last_saved_timestamp = save_indexes(global_obj["save_cycle_s"])
                 print(knx_messages_log)
                 logging.info(knx_messages_log)
