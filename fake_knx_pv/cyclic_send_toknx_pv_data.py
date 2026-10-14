@@ -28,6 +28,7 @@ from xknx.dpt import (
     DPTColorRGB
 )
 from xknx.telegram.apci import GroupValueWrite
+import xknx.io.const
 from pv_data import get_pv_data
 from conso_data import get_conso_data
 from meteo_data import get_meteo_data
