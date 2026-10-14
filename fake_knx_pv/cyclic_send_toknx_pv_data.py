@@ -11,7 +11,7 @@ import asyncio
 import json
 import threading
 import http.server
-from xknx import XKNX
+from xknx import XKNX, xknx
 from xknx.telegram import GroupAddress, Telegram
 from xknx.io import ConnectionConfig, ConnectionType, GatewayScanner
 from xknx.dpt import (
@@ -32,6 +32,9 @@ from pv_data import get_pv_data
 from conso_data import get_conso_data
 from meteo_data import get_meteo_data
 from devices import volet
+
+# Surcharge la constante globale de timeout (par défaut 2.0s -> passe à 6.0s)
+xknx.io.const.DEFAULT_REQUEST_TIMEOUT = 6.0
 
 
 def get_local_ip():
@@ -402,8 +405,7 @@ async def send_cyclic_data(global_obj):
     print(f"XKNX connecting to {global_obj['gateway']['ip']}:{global_obj['gateway']['port']}")
     xknx = XKNX(
         connection_config=connection_config,
-        rate_limit=3,
-        request_timeout=6
+        rate_limit=3
     )
     print("XKNX starting...")
     await xknx.start()
