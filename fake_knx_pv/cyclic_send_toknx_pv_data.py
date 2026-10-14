@@ -852,7 +852,7 @@ async def send_cyclic_data(global_obj):
                 save_status(global_obj)
                 try:
                     with open("data.json", "w") as f:
-                        f.write(json.dumps(global_obj))
+                        f.write(json.dumps(global_obj, indent=4))
                 except Exception as e:
                     logging.info("Error saving data: %s", e)
                 last_saved_timestamp = save_indexes(global_obj["save_cycle_s"])
