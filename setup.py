@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="fake_knx_pv",
-    version='0.5.4',
+    version='0.5.5',
     author="Eric",
     description="Simulation KNX PV pour données de production et consommation.",
     packages=find_packages(),

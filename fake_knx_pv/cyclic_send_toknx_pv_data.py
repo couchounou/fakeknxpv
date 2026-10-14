@@ -11,7 +11,7 @@ import asyncio
 import json
 import threading
 import http.server
-from xknx import XKNX, xknx
+from xknx import XKNX
 from xknx.telegram import GroupAddress, Telegram
 from xknx.io import ConnectionConfig, ConnectionType, GatewayScanner
 from xknx.dpt import (
@@ -28,14 +28,10 @@ from xknx.dpt import (
     DPTColorRGB
 )
 from xknx.telegram.apci import GroupValueWrite
-import xknx.io.const
 from pv_data import get_pv_data
 from conso_data import get_conso_data
 from meteo_data import get_meteo_data
 from devices import volet
-
-# Surcharge la constante globale de timeout (par défaut 2.0s -> passe à 6.0s)
-xknx.io.const.DEFAULT_REQUEST_TIMEOUT = 6.0
 
 
 def get_local_ip():
