@@ -267,10 +267,7 @@
             </div>
 
             <div class="controls">
-                <!-- 
-      <button class="btn" id="btnLoad">Charger JSON</button>
-      <button class="btn" id="btnFetch">Fetch depuis URL</button>
-      <input id="fetchUrl" class="btn" style="min-width:260px" value="" placeholder="URL JSON (ex: http://host/state.json)">-->
+                <button class="btn" id="btnRefresh" type="button">Actualiser</button>
             </div>
         </header>
 
@@ -653,7 +650,7 @@
         async function chargerJSON() {
             try {
                 // fetch depuis le même serveur (/) → on récupère ton JSON KNX/PV
-                const response = await fetch(window.location.origin + '/data.json');
+                const response = await fetch(window.location.origin + '/data.json', { cache: 'no-store' });
                 if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
                 const data = await response.json();
                 // on appelle la fonction principale de rendu
@@ -663,7 +660,7 @@
             }
         }
 
-
+        el('btnRefresh').addEventListener('click', chargerJSON);
         chargerJSON();
         setInterval(chargerJSON, 5000);
 
