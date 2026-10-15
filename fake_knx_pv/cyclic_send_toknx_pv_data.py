@@ -458,12 +458,12 @@ async def send_cyclic_data(global_obj):
         ):
             value = telegram.payload.value.value
             logging.info("Generic switch command received value: %s on %s", value, telegram.destination_address)
+            logging.info("Sending switch telegram with value: %s to %s", value, GroupAddress(
+                f"{telegram.destination_address.main}/"
+                f"{telegram.destination_address.middle}/"
+                f"{telegram.destination_address.sub + 20}"
+            ))
             asyncio.create_task(
-                logging.info("Sending switch telegram with value: %s to %s", value, GroupAddress(
-                        f"{telegram.destination_address.main}/"
-                        f"{telegram.destination_address.middle}/"
-                        f"{telegram.destination_address.sub + 20}"
-                    )),
                 send_switch_telegram(
                     xknx,
                     value,
