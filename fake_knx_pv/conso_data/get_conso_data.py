@@ -252,7 +252,7 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
     puissance_w = puissance_base_w + puissance_ecs_w + puissance_pac_w + puissance_eclairage_w
 
     # 4. Ajout d'un bruit aléatoire (±300 W)
-    bruit_w = random.uniform(-300, 300)
+    bruit_w = random.uniform(0, 300)
     puissance_w += bruit_w
 
     # 5. Borne la puissance entre un talon minimum aléatoire (12 W à 48 W) et pmax_w
