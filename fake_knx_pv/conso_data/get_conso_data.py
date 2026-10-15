@@ -14,6 +14,63 @@ _pac_end = None
 _pac_p_cible = 0.0
 
 
+def eclairage_profile(heure, mois, puissance_max_led_w=200):
+    """Retourne la puissance consommée (W) par l'éclairage de la maison
+
+    en fonction de l'heure (0.0 à 23.99) et du mois (1 à 12).
+
+    - Puissance max simultanée (tout allumé) : 200 W (LEDs)
+    - Prise en compte de la durée du jour selon la saison
+    """
+    h = heure % 24
+
+    # 1. Détermination de l'heure du coucher / lever du soleil selon la saison
+    # Hiver (mois 1, 12) : soleil ~08h00 à ~17h00
+    # Été (mois 6, 7)   : soleil ~06h00 à ~22h00
+    facteur_saison = math.cos((mois - 1) * math.pi / 6)  # 1 en Janvier, -1 en Juillet
+
+    heure_coucher = 19.5 - (2.5 * facteur_saison)  # 17h en hiver, 22h en été
+    heure_lever = 7.0 + (1.0 * facteur_saison)      # 8h en hiver, 6h en été
+
+    puissance_base_w = 0.0
+
+    # 2. Logique selon les périodes de la journée
+    if 0.5 <= h < heure_lever - 1:
+        # Nuit profonde : 0W, mais petite probabilité d'un éclairage ponctuel (passage WC/eau)
+        if random.random() < 0.05:
+            puissance_base_w = random.uniform(10, 30)
+
+    elif heure_lever - 1 <= h < heure_lever + 1.5:
+        # Matin : Réveil et préparation avant le départ
+        # En hiver il fait nuit -> fort besoin. En été il fait jour -> très faible besoin.
+        besoin_matin = 0.8 if h < heure_lever else 0.3
+        puissance_base_w = puissance_max_led_w * 0.5 * besoin_matin
+
+    elif heure_lever + 1.5 <= h < heure_coucher:
+        # Journée : Lumière naturelle disponible.
+        # Faible éclairage résiduel dans pièces sombres/bureau (10 à 20% du max)
+        puissance_base_w = puissance_max_led_w * random.uniform(0.05, 0.15)
+
+    elif heure_coucher <= h < 23.5:
+        # Soirée : Soirée en famille, repas, détente (Pic principal)
+        # La puissance augmente progressivement à mesure que la nuit tombe
+        progression = min(1.0, (h - heure_coucher) + 0.5)
+
+        # Pic maximum entre 19h et 22h (jusqu'à 70-90% de la puissance LED installée)
+        facteur_presence = 0.85 if 19 <= h <= 22 else 0.5
+        puissance_base_w = puissance_max_led_w * facteur_presence * progression
+
+    else:
+        # Fin de nuit (23h30 - 00h30) : Extinction progressive avant le coucher
+        puissance_base_w = puissance_max_led_w * 0.15
+
+    # 3. Ajout d'une instabilité/bruit aléatoire (allumage/extinction d'une pièce : ±20 W)
+    bruit_w = random.uniform(-15, 15) if puissance_base_w > 0 else 0.0
+    puissance_totale_w = max(0.0, min(puissance_max_led_w, puissance_base_w + bruit_w))
+
+    return float(puissance_totale_w)
+
+
 def pac_chauffage_profile(heure, mois, pmax_w=3000):
     """Retourne la puissance consommée (W) par la pompe à chaleur à une heure donnée
 
@@ -131,7 +188,7 @@ def chauffe_eau_profile(heure):
 def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
-    puissance_totale, puissance_ecs, puissance_pac = profil_maison(
+    puissance_totale, puissance_ecs, puissance_pac, puissance_eclairage = profil_maison(
         datetime.now().hour,
         datetime.now().weekday(),
         pmax_w=power
@@ -139,16 +196,25 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     e_totale = puissance_totale * delta / 3600
     e_ecs = puissance_ecs * delta / 3600
     e_pac = puissance_pac * delta / 3600
+    e_eclairage = puissance_eclairage * delta / 3600
     logging.info(
-        "P totale:%sW, E totale:%sWh, P ECS:%sW, E ECS:%sWh, P PAC:%sW, E PAC:%sWh",
+        "P totale:%sW, E totale:%sWh, P ECS:%sW, E ECS:%sWh, P PAC:%sW, E PAC:%sWh, P Eclairage:%sW, E Eclairage:%sWh",
         puissance_totale,
         e_totale,
         puissance_ecs,
         e_ecs,
         puissance_pac,
-        e_pac
+        e_pac,
+        puissance_eclairage,
+        e_eclairage
     )
-    return round(puissance_totale, 2), e_totale, round(puissance_ecs, 2), e_ecs, round(puissance_pac, 2), e_pac
+    return (
+        round(puissance_totale, 2),
+        e_totale, round(puissance_ecs, 2),
+        e_ecs, round(puissance_pac, 2),
+        e_pac, round(puissance_eclairage, 2),
+        e_eclairage
+    )
 
 
 def profil_maison(heure, jour_semaine, pmax_w=6000):
@@ -182,7 +248,8 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
     # 3. Ajout de la courbe chauffe-eau (déjà en Watts)
     puissance_ecs_w = chauffe_eau_profile(h)
     puissance_pac_w = pac_chauffage_profile(h, datetime.now().month)
-    puissance_w = puissance_base_w + puissance_ecs_w + puissance_pac_w
+    puissance_eclairage_w = eclairage_profile(h, datetime.now().month)
+    puissance_w = puissance_base_w + puissance_ecs_w + puissance_pac_w + puissance_eclairage_w
 
     # 4. Ajout d'un bruit aléatoire (±300 W)
     bruit_w = random.uniform(-300, 300)
@@ -192,7 +259,7 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
     talon_min_w = random.uniform(80, 240)
     puissance_totale_w = max(talon_min_w, min(pmax_w, puissance_w))
 
-    return float(puissance_totale_w), float(puissance_ecs_w), float(puissance_pac_w)
+    return float(puissance_totale_w), float(puissance_ecs_w), float(puissance_pac_w), float(puissance_eclairage_w)
 
 
 _last_water_call = datetime.now().timestamp()
