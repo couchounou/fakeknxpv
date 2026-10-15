@@ -8,6 +8,82 @@ import logging
 _chauffe_eau_active = False
 _chauffe_eau_start = None
 _chauffe_eau_end = None
+_pac_active = False
+_pac_start = None
+_pac_end = None
+_pac_p_cible = 0.0
+
+
+def pac_chauffage_profile(heure, mois, pmax_w=3000):
+    """Retourne la puissance consommée (W) par la pompe à chaleur à une heure donnée
+
+    en fonction de l'heure (0.0 à 23.99) et du mois (1 à 12).
+
+    - Consommation max : 3000 W (3 kW)
+    - Fonctionne par cycles modulés (Inverter + régulation)
+    - Prend en compte les variations saisonnières et quotidiennes
+    """
+    global _pac_active, _pac_start, _pac_end, _pac_p_cible
+
+    h = heure % 24
+
+    # 1. Facteur saisonnier (1.0 = plein hiver en Janvier/Décembre, 0.0 = été en Juillet)
+    # Courbe sinusoïdale centrée sur l'hiver (mois 1 et 12)
+    facteur_saison = max(0.0, math.cos((mois - 1) * math.pi / 6))
+
+    # Si c'est l'été (juin, juillet, août), le chauffage est coupé
+    if facteur_saison < 0.15:
+        _pac_active = False
+        return 0.0
+
+    # 2. Facteur horaire (température extérieure) :
+    # Pic de besoin entre 03h et 08h du matin, besoin réduit entre 13h et 16h
+    besoin_horaire = 0.8 + 0.2 * math.cos((h - 5) * math.pi / 12)
+
+    # Puissance moyenne théorique nécessaire pour l'heure courante (W)
+    puissance_besoin_w = pmax_w * facteur_saison * besoin_horaire
+
+    # 3. Gestion des cycles d'activation/Inverter de la PAC
+    if not _pac_active:
+        # Probabilité de déclencher un cycle de chauffe basée sur le besoin
+        probabilite_activation = min(0.9, puissance_besoin_w / pmax_w)
+
+        if random.random() < probabilite_activation:
+            _pac_active = True
+            _pac_start = h
+            # Durée d'un cycle de chauffe : entre 30 min (0.5h) et 2h (120 min)
+            duree_cycle = random.uniform(0.5, 2.0)
+            _pac_end = (h + duree_cycle) % 24
+
+            # Modulation Inverter : la PAC ajuste sa puissance autour du besoin
+            # avec une variation aléatoire realistic (± 15%)
+            _pac_p_cible = min(
+                pmax_w, puissance_besoin_w * random.uniform(0.85, 1.15)
+            )
+
+    # 4. Traitement pendant la période de chauffe
+    if _pac_active:
+        # Vérification si l'heure courante est dans la plage du cycle
+        en_cycle = (
+            _pac_start <= h < _pac_end
+            if _pac_start < _pac_end
+            else (h >= _pac_start or h < _pac_end)
+        )
+
+        if en_cycle:
+            # Bruit de régulation / modulation Inverter instantanée (±100 W)
+            bruit = random.uniform(-100, 100)
+            puissance_instantanee = _pac_p_cible + bruit
+            # La puissance reste bornée entre le talon minimal du compresseur (500 W) et pmax_w
+            return float(max(500.0, min(pmax_w, puissance_instantanee)))
+        else:
+            # Fin du cycle
+            _pac_active = False
+            _pac_start = None
+            _pac_end = None
+            _pac_p_cible = 0.0
+
+    return 0.0
 
 
 def chauffe_eau_profile(heure):
@@ -55,17 +131,24 @@ def chauffe_eau_profile(heure):
 def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
-    puissance_totale, puissance_ecs = profil_maison(datetime.now().hour, datetime.now().weekday(), pmax_w=power)
+    puissance_totale, puissance_ecs, puissance_pac = profil_maison(
+        datetime.now().hour,
+        datetime.now().weekday(),
+        pmax_w=power
+    )
     e_totale = puissance_totale * delta / 3600
     e_ecs = puissance_ecs * delta / 3600
+    e_pac = puissance_pac * delta / 3600
     logging.info(
-        "puissance totale:%sW, energie totale:%sWh, puissance ECS:%sW, energie ECS:%sWh",
+        "P totale:%sW, E totale:%sWh, P ECS:%sW, E ECS:%sWh, P PAC:%sW, E PAC:%sWh",
         puissance_totale,
         e_totale,
         puissance_ecs,
-        e_ecs
+        e_ecs,
+        puissance_pac,
+        e_pac
     )
-    return round(puissance_totale, 2), e_totale, round(puissance_ecs, 2), e_ecs
+    return round(puissance_totale, 2), e_totale, round(puissance_ecs, 2), e_ecs, round(puissance_pac, 2), e_pac
 
 
 def profil_maison(heure, jour_semaine, pmax_w=6000):
@@ -93,17 +176,18 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
 
     # 3. Ajout de la courbe chauffe-eau (déjà en Watts)
     puissance_ecs_w = chauffe_eau_profile(h)
-    puissance_w = puissance_base_w + puissance_ecs_w
+    puissance_pac_w = pac_chauffage_profile(h, datetime.now().month)
+    puissance_w = puissance_base_w + puissance_ecs_w + puissance_pac_w
 
     # 4. Ajout d'un bruit aléatoire (±300 W)
     bruit_w = random.uniform(-300, 300)
     puissance_w += bruit_w
 
     # 5. Borne la puissance entre un talon minimum aléatoire (12 W à 48 W) et pmax_w
-    talon_min_w = random.uniform(12, 120)
+    talon_min_w = random.uniform(80, 240)
     puissance_totale_w = max(talon_min_w, min(pmax_w, puissance_w))
 
-    return float(puissance_totale_w), float(puissance_ecs_w)
+    return float(puissance_totale_w), float(puissance_ecs_w), float(puissance_pac_w)
 
 
 _last_water_call = datetime.now().timestamp()
