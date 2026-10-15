@@ -408,6 +408,8 @@ async def send_telegram(
     dpt
 ):
     await asyncio.sleep(0.3)
+    if jstatus.get("dry_run", True):
+        return
     await xknx.telegrams.put(
         Telegram(
             destination_address=GroupAddress(group_address),
@@ -1001,6 +1003,7 @@ def load_config(global_obj, config_file):
         raise FileNotFoundError(f"Config file {config_file} not found")
     config.read(config_file)
     print(f"Config sections: {config.sections()}")
+    global_obj["dry_run"] = config.getboolean("KNX", "dry_run", fallback=True)
     global_obj["gateway"]["ip"] = config.get("KNX", "gateway_ip")
     global_obj["gateway"]["port"] = config.getint("KNX", "gateway_port", fallback=3671)
     global_obj["save_cycle_s"] = config.getint("KNX", "save_cycle_s", fallback=3600)
@@ -1092,6 +1095,12 @@ if __name__ == "__main__":
         args=(8080,),
         daemon=True
     ).start()
+    print("Starting cyclic_send_toknx_pv_data.py")
+    print(f"Dry run mode: {jstatus.get('dry_run', True)}")
+    print(f"Version: {jstatus.get('version', 'Unknown')}")
+    logging.info("Starting cyclic_send_toknx_pv_data.py")
+    logging.info(f"Dry run mode: {jstatus.get('dry_run', True)}")
+    logging.info(f"Version: {jstatus.get('version', 'Unknown')}")
     version_file = os.path.join(os.path.dirname(__file__), "VERSION")
     if os.path.exists(version_file):
         with open(version_file, "r", encoding="UTF-8") as myfile:

@@ -216,6 +216,7 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
         round(puissance_totale, 2),
         e_totale, round(puissance_ecs, 2),
         e_ecs, round(puissance_pac, 2),
+        e_pac,
         round(puissance_eclairage, 2),
         e_eclairage,
         round(autre, 2),
