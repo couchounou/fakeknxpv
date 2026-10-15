@@ -532,7 +532,16 @@
 
             // Dessine le graphe
             const ctx = document.getElementById('historyChart').getContext('2d');
-            if (window._historyChart) window._historyChart.destroy();
+            const historyVisibility = new Map();
+            if (window._historyChart) {
+                window._historyChart.data.datasets.forEach((dataset, index) => {
+                    historyVisibility.set(
+                        dataset.label,
+                        window._historyChart.isDatasetVisible(index)
+                    );
+                });
+                window._historyChart.destroy();
+            }
             window._historyChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -606,6 +615,17 @@
                     }
                 }
             });
+            historyVisibility.forEach((isVisible, label) => {
+                const index = window._historyChart.data.datasets.findIndex(
+                    dataset => dataset.label === label
+                );
+                if (index !== -1) {
+                    window._historyChart.setDatasetVisibility(index, isVisible);
+                }
+            });
+            if (historyVisibility.size > 0) {
+                window._historyChart.update();
+            }
 
 
 
