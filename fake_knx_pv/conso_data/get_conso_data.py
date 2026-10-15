@@ -55,10 +55,11 @@ def chauffe_eau_profile(heure):
 def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
-    p = round(profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000), 2)
-    e = p * delta / 3600
-    logging.info("Conso power %sW, energie:%sWh diff index:%sWh", p, e, e)
-    return p, e
+    puissance_totale, puissance_ecs = profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000)
+    e_totale = puissance_totale * delta / 3600
+    e_ecs = puissance_ecs * delta / 3600
+    logging.info("puissance totale:%sW, energie totale:%sWh, puissance ECS:%sW, energie ECS:%sWh", puissance_totale, e_totale, puissance_ecs, e_ecs)
+    return round(puissance_totale, 2), e_totale, round(puissance_ecs, 2), e_ecs
 
 
 def profil_maison(heure, jour_semaine, pmax=6):
@@ -88,8 +89,10 @@ def profil_maison(heure, jour_semaine, pmax=6):
 
     puissance = base * facteur
 
+    puissance_ecs_w = chauffe_eau_profile(h)  # en W
+
     # Ajout de la courbe chauffe-eau séparée
-    puissance += chauffe_eau_profile(h) / 1000  # conversion W -> kW
+    puissance += puissance_ecs_w / 1000
 
     # Normalisation à PUISSANCE_MAX
     puissance = min(puissance, pmax)
@@ -99,9 +102,11 @@ def profil_maison(heure, jour_semaine, pmax=6):
     puissance = max(0.0, min(pmax, puissance + bruit))
 
     # on rajoute s'assure que la puissance est au dessus d'un minimum aléatoire
-    puissance += max(random.uniform(0.012, 0.048), puissance)
+    puissance = max(random.uniform(0.012, 0.048), puissance)
 
-    return float(puissance * 1000)
+    puissance_totale_w = float(puissance * 1000)
+
+    return puissance_totale_w, puissance_ecs_w
 
 
 _last_water_call = datetime.now().timestamp()

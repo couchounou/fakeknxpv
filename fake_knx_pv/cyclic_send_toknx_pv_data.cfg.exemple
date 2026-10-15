@@ -17,6 +17,8 @@ inj_energy_group: 6/2/12
 sout_power_group: 6/1/13
 sout_energy_group: 6/2/13
 inj_sout_power_group: 6/1/14
+ecs_power_group: 6/1/15
+ecs_energy_group: 6/2/15
 pressure_group: 6/3/10
 humidity_group: 6/3/11
 text_group: 6/4/10

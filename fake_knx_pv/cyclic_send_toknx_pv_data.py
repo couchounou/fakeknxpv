@@ -137,6 +137,10 @@ jstatus = {
         "debit": {"group_address": "", "value": 0},
         "delta": 0
     },
+    "ecs": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
     "meteo": {
         "temperature": {},
         "humidity": {},
@@ -233,6 +237,7 @@ if os.path.exists(index_file_path):
         jstatus["production"]["Wh"]["value"] = data.get('prod_index', 0.0)
         jstatus["injection"]["Wh"]["value"] = data.get('inj_index', 0.0)
         jstatus["eau"]["index"]["value"] = data.get('eau_index', 0.0)
+        jstatus["ecs"]["Wh"]["value"] = data.get('ecs_index', 0.0)
 
 
 def update_history(history, key, value, max_hours=48):
@@ -269,6 +274,7 @@ def save_indexes(save_cycle_s):
                 "sout_index": jstatus["soutirage"]["Wh"]["value"],
                 "conso_index": jstatus["consommation"]["Wh"]["value"],
                 "prod_index": jstatus["production"]["Wh"]["value"],
+                "ecs_index": jstatus["ecs"]["Wh"]["value"],
                 "eau_index": jstatus["eau"]["index"]["value"]
             }
             json.dump(obj, my_file, ensure_ascii=False)
@@ -609,7 +615,7 @@ async def send_cyclic_data(global_obj):
                     myclouds=myclouds
                 )
 
-                conso_w, conso_wh = get_conso_data.get_conso_data(
+                conso_w, conso_wh, ecs_w, ecs_wh = get_conso_data.get_conso_data(
                     power=global_obj.get("household_power", 0),
                     updated_timestamp=last_updated_timestamp
                 )
@@ -626,6 +632,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["soutirage"]["Wh"]["value"] += sout_wh
                 global_obj["consommation"]["Wh"]["value"] += conso_wh
                 global_obj["production"]["Wh"]["value"] += production_wh
+                global_obj["ecs"]["Wh"]["value"] += ecs_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
                 logging.info(
                     "Simu prod:  %.2fW(%.2fWh)",
@@ -654,6 +661,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["consommation"]["W"]["value"] = int(conso_w)
                 global_obj["injection"]["W"]["value"] = int(abs(inj_w))
                 global_obj["soutirage"]["W"]["value"] = int(sout_w)
+                global_obj["ecs"]["W"]["value"] = int(ecs_w)
                 global_obj["meteo"]["pressure"]["value"] = pressure
                 global_obj["meteo"]["temperature"]["value"] = temperature
                 global_obj["meteo"]["humidity"]["value"] = humidity
@@ -782,6 +790,25 @@ async def send_cyclic_data(global_obj):
                     conso_w
                 )
 
+                # Send conso data to KNX
+                logging.info(
+                    "Send ECS %dW to group=%s and %dWh to group=%s",
+                    int(conso_w),
+                    global_obj['ecs']['W']['group_address'],
+                    int(global_obj['ecs']['Wh']['value']),
+                    global_obj['ecs']['Wh']['group_address']
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['ecs']['Wh']['group_address'],
+                    global_obj["ecs"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['ecs']['W']['group_address'],
+                    conso_w
+                )
+
                 # Send injection data to KNX
                 logging.info(
                     "Send INJ %dW to group=%s and %dWh to group=%s",
@@ -850,11 +877,6 @@ async def send_cyclic_data(global_obj):
                     await xknx.telegrams.put(telegram)
 
                 save_status(global_obj)
-                try:
-                    with open("data.json", "w") as f:
-                        f.write(json.dumps(global_obj, indent=4))
-                except Exception as e:
-                    logging.info("Error saving data: %s", e)
                 last_saved_timestamp = save_indexes(global_obj["save_cycle_s"])
                 print(knx_messages_log)
                 logging.info(knx_messages_log)
@@ -885,6 +907,8 @@ def load_config(global_obj, config_file):
     global_obj["production"]["Wh"]["group_address"] = config.get("KNX", "prod_energy_group", fallback="6/2/11")
     global_obj["consommation"]["W"]["group_address"] = config.get("KNX", "conso_power_group", fallback="6/1/10")
     global_obj["consommation"]["Wh"]["group_address"] = config.get("KNX", "conso_energy_group", fallback="6/2/10")
+    global_obj["ecs"]["W"]["group_address"] = config.get("KNX", "ecs_power_group", fallback="6/1/15")
+    global_obj["ecs"]["Wh"]["group_address"] = config.get("KNX", "ecs_energy_group", fallback="6/2/15")
     global_obj["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group", fallback="6/2/12")
     global_obj["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group", fallback="6/1/12")
     global_obj["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group", fallback="6/2/13")
