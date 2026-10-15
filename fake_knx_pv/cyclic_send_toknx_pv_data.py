@@ -702,6 +702,10 @@ async def send_cyclic_data(global_obj):
                 update_history(global_obj["history"], "production", int(production_W))
                 update_history(global_obj["history"], "injection", int(-inj_w))
                 update_history(global_obj["history"], "soutirage", int(sout_w))
+                update_history(global_obj["history"], "ecs", int(ecs_w))
+                update_history(global_obj["history"], "pac", int(pac_w))
+                update_history(global_obj["history"], "eclairage", int(eclairage_w))
+                update_history(global_obj["history"], "autres", int(autres_w))
 
                 global_obj["inj_sout"]["W"]["value"] = int(-inj_w) if inj_w else int(sout_w)
                 global_obj["production"]["W"]["value"] = int(production_W)
