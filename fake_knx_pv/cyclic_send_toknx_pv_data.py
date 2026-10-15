@@ -811,10 +811,10 @@ async def send_cyclic_data(global_obj):
                     conso_w
                 )
 
-                # Send conso data to KNX
+                # Send ECS data to KNX
                 logging.info(
                     "Send ECS %dW to group=%s and %dWh to group=%s",
-                    int(conso_w),
+                    int(ecs_w),
                     global_obj['ecs']['W']['group_address'],
                     int(global_obj['ecs']['Wh']['value']),
                     global_obj['ecs']['Wh']['group_address']
@@ -827,13 +827,13 @@ async def send_cyclic_data(global_obj):
                 await send_power_telegram(
                     xknx,
                     global_obj['ecs']['W']['group_address'],
-                    conso_w
+                    ecs_w
                 )
 
-                # Send conso data to KNX
+                # Send PAC data to KNX
                 logging.info(
                     "Send PAC %dW to group=%s and %dWh to group=%s",
-                    int(conso_w),
+                    int(pac_w),
                     global_obj['pac']['W']['group_address'],
                     int(global_obj['pac']['Wh']['value']),
                     global_obj['pac']['Wh']['group_address']
@@ -846,7 +846,7 @@ async def send_cyclic_data(global_obj):
                 await send_power_telegram(
                     xknx,
                     global_obj['pac']['W']['group_address'],
-                    conso_w
+                    pac_w
                 )
 
                 # Send injection data to KNX
