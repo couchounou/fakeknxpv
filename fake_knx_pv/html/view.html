@@ -343,10 +343,11 @@
             grid.appendChild(createCard('☀️ Production', pairHtml(data.production)));
             grid.appendChild(createCard('🏠 Consommation', pairHtml(data.consommation)));
             grid.appendChild(createCard('🔼 Injection', pairHtml(data.injection)));
+            grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
             grid.appendChild(createCard('🔽 Soutirage', pairHtml(data.soutirage)));
             grid.appendChild(createCard('💧 Chauffe eau', pairHtml(data.ecs)));
             grid.appendChild(createCard('🏭 PAC', pairHtml(data.pac)));
-            grid.appendChild(createCard('⚡ Injection / Soutirage', pairHtml(data.inj_sout)));
+            grid.appendChild(createCard('💡 Eclairage', pairHtml(data.eclairage)));
 
             // Card capteur d'eau (m³/s et m³)
             if (data.eau) {
@@ -575,7 +576,16 @@
                             backgroundColor: 'rgba(244,63,94,0.08)',
                             tension: 0.2,
                             pointRadius: 0,
+                        },
+                        {
+                            label: 'Eclairage',
+                            data: eclairage,
+                            borderColor: '#facc15',
+                            backgroundColor: 'rgba(250,204,21,0.08)',
+                            tension: 0.2,
+                            pointRadius: 0,
                         }
+                        
                     ]
                 },
                 options: {
