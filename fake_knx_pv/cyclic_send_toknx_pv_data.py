@@ -1,5 +1,5 @@
 
-from datetime import time, timedelta
+from datetime import time, timedelta, datetime
 import random
 from datetime import datetime
 import configparser
@@ -263,10 +263,9 @@ def encode_dpt16(text: str) -> bytes:
 
 
 def save_indexes(save_cycle_s):
-    formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(last_saved_timestamp)))
     logging.info(
         "try Saving indexes to files...with last_saved_timestamp=%s (%s)",
-        formatted_time,
+        datetime.fromtimestamp(int(last_saved_timestamp)).isoformat(),
         int(last_saved_timestamp)
     )
     if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
