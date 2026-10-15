@@ -263,12 +263,18 @@ def encode_dpt16(text: str) -> bytes:
 
 
 def save_indexes(save_cycle_s):
-    logging.info("try Saving indexes to files...with last_saved_timestamp=%s", last_saved_timestamp)
+    formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(last_saved_timestamp)))
+    logging.info(
+        "try Saving indexes to files...with last_saved_timestamp=%s (%s)",
+        formatted_time,
+        int(last_saved_timestamp)
+    )
     if last_saved_timestamp < datetime.now().timestamp() - save_cycle_s:
         with open(history_file_path, "w", encoding="UTF-8") as my_file:
             logging.info("  Saving history to %s", history_file_path)
             json.dump(jstatus["history"], my_file, ensure_ascii=False)
         with open(index_file_path, "w", encoding="UTF-8") as my_file:
+            logging.info("  Saving index to %s", index_file_path)
             obj = {
                 "inj_index": jstatus["injection"]["Wh"]["value"],
                 "sout_index": jstatus["soutirage"]["Wh"]["value"],
@@ -282,9 +288,10 @@ def save_indexes(save_cycle_s):
         try:
             publish_upnp_service(get_local_ip(), 8080)
         except Exception as e:
-            print(f"Error publishing UPnP service: {e}")
             logging.error(f"Error publishing UPnP service: {e}")
         return datetime.now().timestamp()
+    else:
+        logging.info("Skipping saving indexes, saved=%ss ago", datetime.now().timestamp() - int(last_saved_timestamp))
     return last_saved_timestamp
 
 

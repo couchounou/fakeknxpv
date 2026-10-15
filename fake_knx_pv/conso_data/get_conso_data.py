@@ -55,58 +55,55 @@ def chauffe_eau_profile(heure):
 def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
-    puissance_totale, puissance_ecs = profil_maison(datetime.now().hour, datetime.now().weekday(), pmax=power/1000)
+    puissance_totale, puissance_ecs = profil_maison(datetime.now().hour, datetime.now().weekday(), pmax_w=power)
     e_totale = puissance_totale * delta / 3600
     e_ecs = puissance_ecs * delta / 3600
-    logging.info("puissance totale:%sW, energie totale:%sWh, puissance ECS:%sW, energie ECS:%sWh", puissance_totale, e_totale, puissance_ecs, e_ecs)
+    logging.info(
+        "puissance totale:%sW, energie totale:%sWh, puissance ECS:%sW, energie ECS:%sWh",
+        puissance_totale,
+        e_totale,
+        puissance_ecs,
+        e_ecs
+    )
     return round(puissance_totale, 2), e_totale, round(puissance_ecs, 2), e_ecs
 
 
-def profil_maison(heure, jour_semaine, pmax=6):
+def profil_maison(heure, jour_semaine, pmax_w=6000):
     """
-    Retourne la puissance typique (kW) d'une maison
+    Retourne la puissance typique (en Watts) d'une maison
     selon l'heure et le jour de la semaine.
     jour_semaine : 0 = lundi, ..., 6 = dimanche
+    pmax_w : Puissance maximale souscrite / autorisée en Watts (défaut: 6000 W = 6 kVA)
     """
-
     h = heure % 24
 
-    # --- Base commune (2 pics de conso : matin + soir) ---
-    matin = 0.8 * math.exp(-((h - 7) / 2) ** 2)
-    midi = 0.4 * math.exp(-((h - 12) / 3) ** 2)
-    soir = 1.2 * math.exp(-((h - 19) / 2.5) ** 2)
-    base = matin + midi + soir
+    # 1. Base commune des pics de consommation (directement en Watts)
+    matin = 800 * math.exp(-(((h - 7) / 2) ** 2))
+    midi = 400 * math.exp(-(((h - 12) / 3) ** 2))
+    soir = 1200 * math.exp(-(((h - 19) / 2.5) ** 2))
+    base_w = matin + midi + soir
 
-    # --- Ajustement selon le jour ---
-    if jour_semaine < 5:  # Lundi à vendredi
-        facteur = 1.0
-        # Moins d'activité en journée (travail)
-        if 9 <= h <= 16:
-            facteur = 0.6
-    else:  # Samedi ou dimanche
-        # Plus d'activité toute la journée
+    # 2. Facteur selon le jour et l'heure
+    if jour_semaine < 5:  # Semaine (Lundi - Vendredi)
+        facteur = 0.6 if 9 <= h <= 16 else 1.0
+    else:  # Week-end (Samedi - Dimanche)
         facteur = 1.1 if 8 <= h <= 22 else 0.7
 
-    puissance = base * facteur
+    puissance_base_w = base_w * facteur
 
-    puissance_ecs_w = chauffe_eau_profile(h)  # en W
+    # 3. Ajout de la courbe chauffe-eau (déjà en Watts)
+    puissance_ecs_w = chauffe_eau_profile(h)
+    puissance_w = puissance_base_w + puissance_ecs_w
 
-    # Ajout de la courbe chauffe-eau séparée
-    puissance += puissance_ecs_w / 1000
+    # 4. Ajout d'un bruit aléatoire (±300 W)
+    bruit_w = random.uniform(-300, 300)
+    puissance_w += bruit_w
 
-    # Normalisation à PUISSANCE_MAX
-    puissance = min(puissance, pmax)
+    # 5. Borne la puissance entre un talon minimum aléatoire (12 W à 48 W) et pmax_w
+    talon_min_w = random.uniform(12, 120)
+    puissance_totale_w = max(talon_min_w, min(pmax_w, puissance_w))
 
-    # Ajout de bruit réaliste
-    bruit = random.uniform(-0.3, 0.3)
-    puissance = max(0.0, min(pmax, puissance + bruit))
-
-    # on rajoute s'assure que la puissance est au dessus d'un minimum aléatoire
-    puissance = max(random.uniform(0.012, 0.048), puissance)
-
-    puissance_totale_w = float(puissance * 1000)
-
-    return puissance_totale_w, puissance_ecs_w
+    return float(puissance_totale_w), float(puissance_ecs_w)
 
 
 _last_water_call = datetime.now().timestamp()
