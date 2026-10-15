@@ -290,7 +290,13 @@ def save_indexes(save_cycle_s):
             logging.error(f"Error publishing UPnP service: {e}")
         return datetime.now().timestamp()
     else:
-        logging.info("Skipping saving indexes, saved=%ss ago", datetime.now().timestamp() - int(last_saved_timestamp))
+        try:
+            logging.info(
+                "Skip saving indexes, saved %ss ago",
+                int(datetime.now().timestamp() - int(last_saved_timestamp))
+            )
+        except Exception:
+            pass
     return last_saved_timestamp
 
 
