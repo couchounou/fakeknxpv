@@ -173,7 +173,12 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
         facteur = 1.1 if 8 <= h <= 22 else 0.7
 
     puissance_base_w = base_w * facteur
-
+    logging.info(
+        "Puissance base: %sW, Heure: %s, Jour semaine: %s",
+        puissance_base_w,
+        h,
+        jour_semaine
+    )
     # 3. Ajout de la courbe chauffe-eau (déjà en Watts)
     puissance_ecs_w = chauffe_eau_profile(h)
     puissance_pac_w = pac_chauffage_profile(h, datetime.now().month)
