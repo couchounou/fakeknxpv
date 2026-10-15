@@ -298,8 +298,9 @@ def save_indexes(save_cycle_s):
     else:
         try:
             logging.info(
-                "Skip saving indexes, saved %ss ago",
-                int(datetime.now().timestamp() - int(last_saved_timestamp))
+                "Skip saving indexes, saved %ss ago and save cycle is %ss",
+                int(datetime.now().timestamp() - int(last_saved_timestamp)),
+                int(save_cycle_s)
             )
         except Exception:
             pass
