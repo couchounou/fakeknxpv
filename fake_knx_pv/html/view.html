@@ -345,6 +345,7 @@
             grid.appendChild(createCard('💧 Chauffe eau', pairHtml(data.ecs)));
             grid.appendChild(createCard('🏭 PAC', pairHtml(data.pac)));
             grid.appendChild(createCard('💡 Eclairage', pairHtml(data.eclairage)));
+            grid.appendChild(createCard('🛠️ Autres', pairHtml(data.autres)));
 
             // Card capteur d'eau (m³/s et m³)
             if (data.eau) {
@@ -529,6 +530,7 @@
             const ecs = parseHistory(data.history?.ecs);
             const pac = parseHistory(data.history?.pac);
             const eclairage = parseHistory(data.history?.eclairage);
+            const autres = parseHistory(data.history?.autres);
 
             // Dessine le graphe
             const ctx = document.getElementById('historyChart').getContext('2d');
@@ -591,6 +593,14 @@
                             data: eclairage,
                             borderColor: '#facc15',
                             backgroundColor: 'rgba(250,204,21,0.08)',
+                            tension: 0.2,
+                            pointRadius: 0,
+                        },
+                        {
+                            label: 'Autres',
+                            data: autres,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139,92,246,0.08)',
                             tension: 0.2,
                             pointRadius: 0,
                         }

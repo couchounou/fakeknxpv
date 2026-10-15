@@ -193,12 +193,14 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
         datetime.now().weekday(),
         pmax_w=power
     )
+    autre = puissance_totale - (puissance_ecs + puissance_pac + puissance_eclairage)
+    e_autre = autre * delta / 3600
     e_totale = puissance_totale * delta / 3600
     e_ecs = puissance_ecs * delta / 3600
     e_pac = puissance_pac * delta / 3600
     e_eclairage = puissance_eclairage * delta / 3600
     logging.info(
-        "P totale:%sW, E totale:%sWh, P ECS:%sW, E ECS:%sWh, P PAC:%sW, E PAC:%sWh, P Eclairage:%sW, E Eclairage:%sWh",
+        "P totale:%sW, E totale:%sWh, P ECS:%sW, E ECS:%sWh, P PAC:%sW, E PAC:%sWh, P Eclairage:%sW, E Eclairage:%sWh, P Autre:%sW, E Autre:%sWh",
         puissance_totale,
         e_totale,
         puissance_ecs,
@@ -206,14 +208,18 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
         puissance_pac,
         e_pac,
         puissance_eclairage,
-        e_eclairage
+        e_eclairage,
+        autre,
+        e_autre
     )
     return (
         round(puissance_totale, 2),
         e_totale, round(puissance_ecs, 2),
         e_ecs, round(puissance_pac, 2),
-        e_pac, round(puissance_eclairage, 2),
-        e_eclairage
+        round(puissance_eclairage, 2),
+        e_eclairage,
+        round(autre, 2),
+        e_autre
     )
 
 

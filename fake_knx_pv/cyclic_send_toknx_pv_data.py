@@ -149,6 +149,10 @@ jstatus = {
         "W": {"group_address": "", "value": 0},
         "Wh": {"group_address": "", "value": 0}
     },
+    "autres": {
+        "W": {"group_address": "", "value": 0},
+        "Wh": {"group_address": "", "value": 0}
+    },
     "meteo": {
         "temperature": {},
         "humidity": {},
@@ -248,6 +252,7 @@ if os.path.exists(index_file_path):
         jstatus["ecs"]["Wh"]["value"] = data.get('ecs_index', 0.0)
         jstatus["pac"]["Wh"]["value"] = data.get('pac_index', 0.0)
         jstatus["eclairage"]["Wh"]["value"] = data.get('eclairage_index', 0.0)
+        jstatus["autres"]["Wh"]["value"] = data.get('autre_index', 0.0)
 
 
 def update_history(history, key, value, max_hours=48):
@@ -292,6 +297,7 @@ def save_indexes(save_cycle_s):
                 "ecs_index": jstatus["ecs"]["Wh"]["value"],
                 "pac_index": jstatus["pac"]["Wh"]["value"],
                 "eclairage_index": jstatus["eclairage"]["Wh"]["value"],
+                "autres_index": jstatus["autres"]["Wh"]["value"],
                 "eau_index": jstatus["eau"]["index"]["value"]
             }
             json.dump(obj, my_file, ensure_ascii=False)
@@ -640,7 +646,18 @@ async def send_cyclic_data(global_obj):
                     myclouds=myclouds
                 )
 
-                conso_w, conso_wh, ecs_w, ecs_wh, pac_w, pac_wh, eclairage_w, eclairage_wh = get_conso_data.get_conso_data(
+                (
+                    conso_w,
+                    conso_wh,
+                    ecs_w,
+                    ecs_wh,
+                    pac_w,
+                    pac_wh,
+                    eclairage_w,
+                    eclairage_wh,
+                    autres_w,
+                    autres_wh
+                ) = get_conso_data.get_conso_data(
                     power=global_obj.get("household_power", 0),
                     updated_timestamp=last_updated_timestamp
                 )
@@ -660,6 +677,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["ecs"]["Wh"]["value"] += ecs_wh
                 global_obj["pac"]["Wh"]["value"] += pac_wh
                 global_obj["eclairage"]["Wh"]["value"] += eclairage_wh
+                global_obj["autres"]["Wh"]["value"] += autres_wh
                 inj_sout_power = -inj_w if inj_w else sout_w
                 logging.info(
                     "Simu prod:  %.2fW(%.2fWh)",
@@ -691,6 +709,7 @@ async def send_cyclic_data(global_obj):
                 global_obj["ecs"]["W"]["value"] = int(ecs_w)
                 global_obj["pac"]["W"]["value"] = int(pac_w)
                 global_obj["eclairage"]["W"]["value"] = int(eclairage_w)
+                global_obj["autres"]["W"]["value"] = int(autres_w)
                 global_obj["meteo"]["pressure"]["value"] = pressure
                 global_obj["meteo"]["temperature"]["value"] = temperature
                 global_obj["meteo"]["humidity"]["value"] = humidity
@@ -895,6 +914,25 @@ async def send_cyclic_data(global_obj):
                     inj_w
                 )
 
+                # Send autres data to KNX
+                logging.info(
+                    "Send AUTRES %dW to group=%s and %dWh to group=%s",
+                    int(autres_w),
+                    global_obj['autres']['W']['group_address'],
+                    int(global_obj['autres']['Wh']['value']),
+                    global_obj['autres']['Wh']['group_address']
+                )
+                await send_energy_telegram(
+                    xknx,
+                    global_obj['autres']['Wh']['group_address'],
+                    global_obj["autres"]["Wh"]["value"]
+                )
+                await send_power_telegram(
+                    xknx,
+                    global_obj['autres']['W']['group_address'],
+                    autres_w
+                )
+
                 # Send soutirage data to KNX
                 logging.info(
                     "Send SOUT %dW to group=%s and %dWh to group=%s",
@@ -980,6 +1018,8 @@ def load_config(global_obj, config_file):
     global_obj["pac"]["Wh"]["group_address"] = config.get("KNX", "pac_energy_group", fallback="6/2/16")
     global_obj["eclairage"]["W"]["group_address"] = config.get("KNX", "eclairage_power_group", fallback="6/1/17")
     global_obj["eclairage"]["Wh"]["group_address"] = config.get("KNX", "eclairage_energy_group", fallback="6/2/17")
+    global_obj["autres"]["W"]["group_address"] = config.get("KNX", "autre_power_group", fallback="6/1/18")
+    global_obj["autres"]["Wh"]["group_address"] = config.get("KNX", "autre_energy_group", fallback="6/2/18")
     global_obj["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group", fallback="6/2/12")
     global_obj["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group", fallback="6/1/12")
     global_obj["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group", fallback="6/2/13")
