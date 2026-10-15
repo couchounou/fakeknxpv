@@ -1,7 +1,6 @@
 
 from datetime import time, timedelta, datetime
 import random
-from datetime import datetime
 import configparser
 import socket
 import logging
@@ -252,7 +251,7 @@ if os.path.exists(index_file_path):
         jstatus["ecs"]["Wh"]["value"] = data.get('ecs_index', 0.0)
         jstatus["pac"]["Wh"]["value"] = data.get('pac_index', 0.0)
         jstatus["eclairage"]["Wh"]["value"] = data.get('eclairage_index', 0.0)
-        jstatus["autres"]["Wh"]["value"] = data.get('autre_index', 0.0)
+        jstatus["autres"]["Wh"]["value"] = data.get('autres_index', 0.0)
 
 
 def update_history(history, key, value, max_hours=48):
@@ -1025,8 +1024,8 @@ def load_config(global_obj, config_file):
     global_obj["pac"]["Wh"]["group_address"] = config.get("KNX", "pac_energy_group", fallback="6/2/16")
     global_obj["eclairage"]["W"]["group_address"] = config.get("KNX", "eclairage_power_group", fallback="6/1/17")
     global_obj["eclairage"]["Wh"]["group_address"] = config.get("KNX", "eclairage_energy_group", fallback="6/2/17")
-    global_obj["autres"]["W"]["group_address"] = config.get("KNX", "autre_power_group", fallback="6/1/18")
-    global_obj["autres"]["Wh"]["group_address"] = config.get("KNX", "autre_energy_group", fallback="6/2/18")
+    global_obj["autres"]["W"]["group_address"] = config.get("KNX", "autres_power_group", fallback="6/1/18")
+    global_obj["autres"]["Wh"]["group_address"] = config.get("KNX", "autres_energy_group", fallback="6/2/18")
     global_obj["injection"]["Wh"]["group_address"] = config.get("KNX", "inj_energy_group", fallback="6/2/12")
     global_obj["injection"]["W"]["group_address"] = config.get("KNX", "inj_power_group", fallback="6/1/12")
     global_obj["soutirage"]["Wh"]["group_address"] = config.get("KNX", "sout_energy_group", fallback="6/2/13")
