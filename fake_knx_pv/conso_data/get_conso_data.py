@@ -117,6 +117,14 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
             _pac_p_cible = min(
                 pmax_w, puissance_besoin_w * random.uniform(0.85, 1.15)
             )
+            logging.info(
+                "PAC cycle started at %.2f with target power %.2f W and ending at %.2f",
+                _pac_start,
+                _pac_p_cible,
+                _pac_end
+            )
+        else:
+            logging.info("PAC did not start a new cycle")
 
     # 4. Traitement pendant la période de chauffe
     if _pac_active:
@@ -135,6 +143,11 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
             return float(max(500.0, min(pmax_w, puissance_instantanee)))
         else:
             # Fin du cycle
+            logging.info(
+                "PAC cycle ended at %.2f (current hour %.2f)",
+                _pac_end,
+                h
+            )
             _pac_active = False
             _pac_start = None
             _pac_end = None
