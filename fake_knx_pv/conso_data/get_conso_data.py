@@ -74,66 +74,42 @@ def eclairage_profile(heure, mois, puissance_max_led_w=200):
 def pac_chauffage_profile(heure, mois, pmax_w=3000):
     """Retourne la puissance consommée (W) par la pompe à chaleur.
 
-    Fonctionnement continu/Inverter régulé selon le besoin thermique.
+    Simule des cycles de chauffe quotidiens réalistes en hiver (pas 24h/24).
     """
-    global _pac_active, _pac_start, _pac_end, _pac_p_cible
-
     h = heure % 24
 
-    # 1. Facteur saisonnier (1.0 en Janvier/Décembre, 0.0 en Juillet)
+    # 1. Saisonnalité (1.0 en Janvier/Décembre, 0.0 en Juillet)
     facteur_saison = max(0.0, math.cos((mois - 1) * math.pi / 6))
 
-    # Chauffage coupé de juin à août
+    # Coupé de juin à août
     if facteur_saison < 0.15:
-        _pac_active = False
         return 0.0
 
-    # 2. Besoins selon l'heure (froid nocturne/matinal)
-    besoin_horaire = 0.8 + 0.2 * math.cos((h - 5) * math.pi / 12)
-    puissance_besoin_w = pmax_w * facteur_saison * besoin_horaire
+    # 2. Définition des plages d'activation quotidiennes (Thermostat)
+    # Matin (05h-09h), Midi (11h30-13h30), Soirée (17h-22h30), Relance nuit (02h-03h30)
+    en_periode_chauffe = (
+        (5.0 <= h < 9.0)
+        or (11.5 <= h < 13.5)
+        or (17.0 <= h < 22.5)
+        or (2.0 <= h < 3.5)
+    )
 
-    # 3. Démarrage ou renouvellement d'un cycle de chauffe
-    if not _pac_active:
-        _pac_active = True
-        _pac_start = h
-        # Cycles plus longs (2h à 6h) pour simuler l'inertie du logement
-        duree_cycle = random.uniform(2.0, 6.0)
-        _pac_end = (h + duree_cycle) % 24
+    if not en_periode_chauffe:
+        # En dehors des créneaux : PAC à l'arrêt complet
+        return 0.0
 
-        # Puissance Inverter calculée selon le besoin réel
-        _pac_p_cible = min(pmax_w, puissance_besoin_w * random.uniform(0.9, 1.1))
+    # 3. Profil de besoin thermique selon l'heure (froid nocturne/matinal)
+    besoin_horaire = 0.85 + 0.15 * math.cos((h - 5) * math.pi / 12)
 
-        logging.info(
-            "PAC cycle started at %.2f with target power %.2f W and ending at %.2f",
-            _pac_start,
-            _pac_p_cible,
-            _pac_end,
-        )
+    # 4. Puissance modulée (Inverter) selon le besoin et la saison
+    puissance_cible = pmax_w * facteur_saison * besoin_horaire
 
-    # 4. Traitement en cours de cycle
-    if _pac_active:
-        en_cycle = (
-            _pac_start <= h < _pac_end
-            if _pac_start < _pac_end
-            else (h >= _pac_start or h < _pac_end)
-        )
+    # 5. Ajout de bruit instantané (±100 W)
+    bruit = random.uniform(-100, 100)
+    puissance_instantanee = puissance_cible + bruit
 
-        if en_cycle:
-            # Réajustement dynamique léger pendant le cycle
-            _pac_p_cible = min(pmax_w, puissance_besoin_w * random.uniform(0.95, 1.05))
-            bruit = random.uniform(-50, 50)
-            puissance_instantanee = _pac_p_cible + bruit
-
-            # Talon Inverter minimal de 600 W
-            return float(max(600.0, min(pmax_w, puissance_instantanee)))
-        else:
-            logging.info("PAC cycle ended at %.2f (current hour %.2f)", _pac_end, h)
-            _pac_active = False
-            _pac_start = None
-            _pac_end = None
-            _pac_p_cible = 0.0
-
-    return 0.0
+    # Talon minimal de 600 W pendant qu'elle fonctionne
+    return float(max(600.0, min(pmax_w, puissance_instantanee)))
 
 
 def chauffe_eau_profile(heure):
