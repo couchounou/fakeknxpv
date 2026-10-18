@@ -115,6 +115,8 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
 
     # Talon minimal de 600 W pendant le fonctionnement
     return float(max(600.0, min(pmax_w, puissance_instantanee)))
+
+
 def chauffe_eau_profile(heure):
     """
     Retourne la puissance du chauffe-eau (W) à une heure donnée.
