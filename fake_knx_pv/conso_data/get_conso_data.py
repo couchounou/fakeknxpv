@@ -77,7 +77,7 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
 
     # 1. Saisonnalité
     # Si on est entre mai (mois 5) et mi-octobre (mois 10.5), la PAC est coupée
-    if 5.0 <= mois < 10.5:
+    if 5.0 <= mois < 10:
         return 0.0
 
     # Décalage pour centrer le pic de froid sur mi-janvier
