@@ -72,27 +72,19 @@ def eclairage_profile(heure, mois, puissance_max_led_w=200):
 
 
 def pac_chauffage_profile(heure, mois, pmax_w=3000):
-    """Retourne la puissance consommée (W) par la PAC.
-
-    Saison de chauffe : mi-octobre (10.5) à mi-avril (4.5).
-    """
+    """Retourne la puissance consommée (W) par la PAC."""
     h = heure % 24
 
-    # 1. Saisonnalité ajustée (Pik à 1.0 en Janvier, début à 0.25 mi-octobre, 0.0 de mai à septembre)
-    # Décalage de +1 mois pour centrer le pic sur mi-janvier
-    angle = (mois - 1) * math.pi / 6
-    facteur_saison = math.cos(angle)
-
-    # Allumage explicite à partir de mi-octobre (mois >= 10.5 ou mois <= 4.5)
-    # Si on est entre mai et début octobre, la PAC est coupée
-    if 4.5 < mois < 10.5:
+    # 1. Saisonnalité
+    # Si on est entre mai (mois 5) et mi-octobre (mois 10.5), la PAC est coupée
+    if 5.0 <= mois < 10.5:
         return 0.0
 
-    # Ajustement du facteur pour mi-octobre (valeur faible mais non nulle ~ 0.25)
-    facteur_saison = max(0.20, abs(facteur_saison))
+    # Décalage pour centrer le pic de froid sur mi-janvier
+    angle = (mois - 1) * math.pi / 6
+    facteur_saison = max(0.20, abs(math.cos(angle)))
 
-    # 2. Définition des plages d'activation quotidiennes (Thermostat)
-    # Matin (05h-09h), Midi (11h30-13h30), Soirée (17h-22h30), Relance nuit (02h-03h30)
+    # 2. Plages d'activation quotidiennes
     en_periode_chauffe = (
         (5.0 <= h < 9.0)
         or (11.5 <= h < 13.5)
@@ -103,13 +95,13 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
     if not en_periode_chauffe:
         return 0.0
 
-    # 3. Profil de besoin thermique selon l'heure (froid nocturne/matinal)
+    # 3. Profil de besoin thermique selon l'heure
     besoin_horaire = 0.85 + 0.15 * math.cos((h - 5) * math.pi / 12)
 
-    # 4. Puissance modulée selon la saison et l'heure
+    # 4. Puissance modulée
     puissance_cible = pmax_w * facteur_saison * besoin_horaire
 
-    # 5. Ajout de bruit instantané (±100 W)
+    # 5. Bruit instantané
     bruit = random.uniform(-100, 100)
     puissance_instantanee = puissance_cible + bruit
 
