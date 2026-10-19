@@ -665,7 +665,8 @@ async def send_cyclic_data(global_obj):
                     autres_wh
                 ) = get_conso_data.get_conso_data(
                     power=global_obj.get("household_power", 0),
-                    updated_timestamp=last_updated_timestamp
+                    updated_timestamp=last_updated_timestamp,
+                    temp_ext=temperature,
                 )
 
                 inj_w, inj_wh, sout_w, sout_wh = get_inj_data(

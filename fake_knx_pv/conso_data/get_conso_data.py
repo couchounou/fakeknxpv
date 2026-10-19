@@ -71,20 +71,19 @@ def eclairage_profile(heure, mois, puissance_max_led_w=200):
     return float(puissance_totale_w)
 
 
-def pac_chauffage_profile(heure, mois, pmax_w=3000):
-    """Retourne la puissance consommée (W) par la PAC."""
+def pac_chauffage_profile(heure, temp_ext=10, pmax_w=3000, temp_consigne=20.0):
+    """
+    Retourne la puissance consommée (W) par la PAC en fonction de la température extérieure.
+    - Se coupe au-dessus de 16°C extérieur (température de non-chauffage).
+    - Atteint sa puissance max vers -5°C extérieur.
+    """
     h = heure % 24
 
-    # 1. Saisonnalité
-    # Si on est entre mai (mois 5) et mi-octobre (mois 10.5), la PAC est coupée
-    if 5.0 <= mois < 10:
+    # 1. Seuil d'allumage global (pas de chauffage au-delà de 16°C ext.)
+    if temp_ext >= 16.0:
         return 0.0
 
-    # Décalage pour centrer le pic de froid sur mi-janvier
-    angle = (mois - 1) * math.pi / 6
-    facteur_saison = max(0.20, abs(math.cos(angle)))
-
-    # 2. Plages d'activation quotidiennes
+    # 2. Plages d'activation quotidiennes (thermostat)
     en_periode_chauffe = (
         (5.0 <= h < 9.0)
         or (11.5 <= h < 13.5)
@@ -95,18 +94,24 @@ def pac_chauffage_profile(heure, mois, pmax_w=3000):
     if not en_periode_chauffe:
         return 0.0
 
-    # 3. Profil de besoin thermique selon l'heure
+    # 3. Facteur de sévérité du froid (linéaire entre 16°C et -5°C)
+    # À 16°C -> facteur = 0.0
+    # À -5°C (ou plus froid) -> facteur = 1.0
+    delta_temp = temp_consigne - temp_ext
+    facteur_froid = min(1.0, max(0.15, delta_temp / 25.0))
+
+    # 4. Profil de besoin horaire (surcroît au petit matin / nuit)
     besoin_horaire = 0.85 + 0.15 * math.cos((h - 5) * math.pi / 12)
 
-    # 4. Puissance modulée
-    puissance_cible = pmax_w * facteur_saison * besoin_horaire
+    # 5. Calcul de la puissance
+    puissance_cible = pmax_w * facteur_froid * besoin_horaire
 
-    # 5. Bruit instantané
+    # 6. Ajout du bruit instantané (±100 W)
     bruit = random.uniform(-100, 100)
     puissance_instantanee = puissance_cible + bruit
 
-    # Talon minimal de 600 W pendant le fonctionnement
-    return float(max(600.0, min(pmax_w, puissance_instantanee)))
+    # Talon minimal de 400 W en fonctionnement
+    return float(max(400.0, min(pmax_w, puissance_instantanee)))
 
 
 def chauffe_eau_profile(heure):
@@ -151,13 +156,14 @@ def chauffe_eau_profile(heure):
     return 0.0
 
 
-def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
+def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp(), temp_ext=10):
     # integrate power over time delta
     delta = datetime.now().timestamp() - updated_timestamp
     puissance_totale, puissance_ecs, puissance_pac, puissance_eclairage = profil_maison(
         datetime.now().hour,
         datetime.now().weekday(),
-        pmax_w=power
+        pmax_w=power,
+        temp_ext=10,
     )
     autre = puissance_totale - (puissance_ecs + puissance_pac + puissance_eclairage)
     e_autre = autre * delta / 3600
@@ -189,7 +195,7 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp()):
     )
 
 
-def profil_maison(heure, jour_semaine, pmax_w=6000):
+def profil_maison(heure, jour_semaine, pmax_w=6000, temp_ext=10):
     """
     Retourne la puissance typique (en Watts) d'une maison
     selon l'heure et le jour de la semaine.
@@ -219,7 +225,7 @@ def profil_maison(heure, jour_semaine, pmax_w=6000):
     )
     # 3. Ajout de la courbe chauffe-eau (déjà en Watts)
     puissance_ecs_w = chauffe_eau_profile(h)
-    puissance_pac_w = pac_chauffage_profile(h, datetime.now().month)
+    puissance_pac_w = pac_chauffage_profile(h, temp_ext=temp_ext)
     puissance_eclairage_w = eclairage_profile(h, datetime.now().month)
     puissance_w = puissance_base_w + puissance_ecs_w + puissance_pac_w + puissance_eclairage_w
 
