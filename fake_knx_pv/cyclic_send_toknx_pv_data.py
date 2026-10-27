@@ -463,6 +463,8 @@ async def send_cyclic_data(global_obj):
                 f"{telegram.destination_address.middle}/"
                 f"{telegram.destination_address.sub + 20}"
             ))
+
+            # Premier envoi immédiat
             asyncio.create_task(
                 send_switch_telegram(
                     xknx,
@@ -474,6 +476,22 @@ async def send_cyclic_data(global_obj):
                     )
                 ),
             )
+
+            # Coroutine interne pour le second envoi différé de 3 secondes
+            async def send_delayed():
+                await asyncio.sleep()
+                await send_position_telegram(
+                    xknx,
+                    int(value),
+                    GroupAddress(
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle + 1}/"
+                        f"{telegram.destination_address.sub + 20}"
+                    )
+                )
+
+            # Second envoi déclenché en tâche de fond avec le délai
+            asyncio.create_task(send_delayed())
     xknx.telegram_queue.register_telegram_received_cb(generic_switch_listener)
 
     # Listener pour les adresses de position génériques
@@ -498,6 +516,22 @@ async def send_cyclic_data(global_obj):
                     position
                 )
             )
+
+            # Coroutine interne pour le second envoi différé de 3 secondes
+            async def send_delayed():
+                await asyncio.sleep()
+                await send_switch_telegram(
+                    xknx,
+                    int(position),
+                    GroupAddress(
+                        f"{telegram.destination_address.main}/"
+                        f"{telegram.destination_address.middle - 1}/"
+                        f"{telegram.destination_address.sub + 20}"
+                    )
+                )
+
+            # Second envoi déclenché en tâche de fond avec le délai
+            asyncio.create_task(send_delayed())
     xknx.telegram_queue.register_telegram_received_cb(generic_position_listener)
 
     # Listener pour les adresses rgbcolor génériques
@@ -512,6 +546,12 @@ async def send_cyclic_data(global_obj):
             r, g, b = raw[0], raw[1], raw[2]
             value = (r, g, b)
             logging.info("Generic rgb command received value: %s", value)
+            logging.info("Sending switch telegram with value: %s to %s", value, GroupAddress(
+                f"{telegram.destination_address.main}/"
+                f"{telegram.destination_address.middle}/"
+                f"{telegram.destination_address.sub + 20}"
+            ))
+
             asyncio.create_task(
                 send_rgb_telegram(
                     xknx,
