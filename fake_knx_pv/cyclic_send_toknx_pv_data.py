@@ -487,7 +487,7 @@ async def send_cyclic_data(global_obj):
                         f"{telegram.destination_address.middle + 1}/"
                         f"{telegram.destination_address.sub + 20}"
                     ),
-                    int(value)
+                    int(100) if value > 0 else int(0)
                 )
 
             # Second envoi déclenché en tâche de fond avec le délai
