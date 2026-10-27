@@ -479,7 +479,7 @@ async def send_cyclic_data(global_obj):
 
             # Coroutine interne pour le second envoi différé de 3 secondes
             async def send_delayed():
-                await asyncio.sleep()
+                await asyncio.sleep(2)
                 await send_position_telegram(
                     xknx,
                     int(value),
