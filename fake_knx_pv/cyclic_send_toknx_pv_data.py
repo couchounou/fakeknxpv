@@ -477,17 +477,17 @@ async def send_cyclic_data(global_obj):
                 ),
             )
 
-            # Coroutine interne pour le second envoi différé de 3 secondes
+            # Coroutine interne pour le second envoi différé de 2 secondes
             async def send_delayed():
                 await asyncio.sleep(2)
                 await send_position_telegram(
                     xknx,
-                    int(value),
                     GroupAddress(
                         f"{telegram.destination_address.main}/"
                         f"{telegram.destination_address.middle + 1}/"
                         f"{telegram.destination_address.sub + 20}"
-                    )
+                    ),
+                    int(value)
                 )
 
             # Second envoi déclenché en tâche de fond avec le délai
