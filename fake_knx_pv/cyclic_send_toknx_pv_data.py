@@ -522,7 +522,7 @@ async def send_cyclic_data(global_obj):
                 await asyncio.sleep()
                 await send_switch_telegram(
                     xknx,
-                    int(position),
+                    int(1) if position > 0 else int(0),
                     GroupAddress(
                         f"{telegram.destination_address.main}/"
                         f"{telegram.destination_address.middle - 1}/"
