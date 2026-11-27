@@ -334,7 +334,7 @@ def get_inj_data(conso: float = 0, prod: float = 0, updated_timestamp=datetime.n
         sout_power = abs(inj)
         diff_sout_index = energy
     logging.info(
-        "Inj power %sW diff inj_index:%sWh, Sout power:%sW diff sout_index:%sWh",
+        "Inj power %.2fW diff inj_index:%.3fWh, Sout power:%.2fW diff sout_index:%.3fWh",
         inj_power,
         diff_inj_index,
         sout_power,

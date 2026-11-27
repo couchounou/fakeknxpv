@@ -260,5 +260,5 @@ def get_water_meter_m3():
         volume_m3 = debit_m3_s * delta_s  # conversion L -> m³
         _total_water_volume += volume_m3
     _last_water_call = now
-    logging.info("Débit: %s m3/s, Volume: %s m3 en %ss", debit_m3_s, _total_water_volume, delta_s)
+    logging.info("Débit: %.2f L/s, Volume: %.3f m3 en %ss", debit_m3_s * 1000, _total_water_volume, delta_s)
     return round(debit_m3_s, 6), round(_total_water_volume, 6)
