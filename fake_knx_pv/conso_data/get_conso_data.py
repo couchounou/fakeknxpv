@@ -172,11 +172,11 @@ def get_conso_data(power=6000, updated_timestamp=datetime.now().timestamp(), tem
     e_pac = puissance_pac * delta / 3600
     e_eclairage = puissance_eclairage * delta / 3600
     logging.info(
-        "P totale:%sW, E totale:%sWh, ",
-        "P ECS:%sW, E ECS:%sWh, "
-        "P PAC:%sW, E PAC:%sWh, "
-        "P Eclairage:%sW, E Eclairage:%sWh, "
-        "P Autre:%sW, E Autre:%sWh",
+        "P totale:%.2fW, E totale:%.3fWh, "
+        "P ECS:%.2fW, E ECS:%.3fWh, "
+        "P PAC:%.2fW, E PAC:%.3fWh, "
+        "P Eclairage:%.2fW, E Eclairage:%.3fWh, "
+        "P Autre:%.2fW, E Autre:%.3fWh",
         puissance_totale, e_totale,
         puissance_ecs, e_ecs,
         puissance_pac, e_pac,
